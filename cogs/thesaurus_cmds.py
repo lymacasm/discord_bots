@@ -11,9 +11,11 @@ class ThesaurusCommands(commands.Cog):
     @commands.command()
     async def synonym(self, ctx, word: str, *args):
         # Validate args
+        print_word = word
         if len(args) > 0:
-            await ctx.send(f'Can only lookup single-word synonyms. Extra words: {", ".join(args)}.')
-            return
+            word_list = [word] + list(args)
+            word = '+'.join(word_list)
+            print_word = ' '.join(word_list)
 
         # Get synonyms
         try:
@@ -21,19 +23,19 @@ class ThesaurusCommands(commands.Cog):
         except thesaurus.WebRequestException as e:
             with open('err.log', 'a') as f:
                 f.write(f'WebRequestException in get_synonym call: {e}\n')
-            await ctx.send(f'No synonyms found for {word}.')
+            await ctx.send(f'No synonyms found for {print_word}.')
             return
         except thesaurus.WebParseException as e:
             with open('err.log', 'a') as f:
                 f.write(f'WebParseException in get_synonym call: {e}\n')
-            await ctx.send(f'Failed to find synonyms for {word}. Please contact bot tech for help.')
+            await ctx.send(f'Failed to find synonyms for {print_word}. Please contact bot tech for help.')
             return
 
         # If success is true, results are a list of synonyms. Otherwise, results is a list of word suggestions.
         if sucess:
             await ctx.send(', '.join(results))
         else:
-            await ctx.send(f'No synonyms found for {word}. Did you mean: {", ".join(results)}?')
+            await ctx.send(f'No synonyms found for {print_word}. Did you mean: {", ".join(results)}?')
 
 def setup(bot):
     bot.add_cog(ThesaurusCommands(bot))
