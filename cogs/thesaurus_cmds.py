@@ -8,6 +8,10 @@ class ThesaurusCommands(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
+    @commands.Cog.listener()
+    async def on_ready(self):
+        print(f'ThesaurusCommands connected as User: {self.bot.user}, ID: {self.bot.user.id}.')
+
     @commands.command()
     async def synonym(self, ctx, word: str, *args):
         # Validate args

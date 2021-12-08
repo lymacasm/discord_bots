@@ -6,7 +6,7 @@ class WritingGreetings(commands.Cog):
 
     @commands.Cog.listener()
     async def on_ready(self):
-        print(f'WritingGreetings connected with.\nUser: {self.bot.user}\nID: {self.bot.user.id}')
+        print(f'WritingGreetings connected as User: {self.bot.user}, ID: {self.bot.user.id}.')
 
     @commands.Cog.listener()
     async def on_member_join(self, member):

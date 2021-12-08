@@ -10,11 +10,13 @@ try:
 except:
     sys.exit('Failed to grab environment variable.')
 
-print('Getting bot setup.')
+print('Initializing bot.')
 writing_bot = commands.Bot(command_prefix='!')
-print('Loading extension 1')
+print('Loading cogs.writing_greetings extension.')
 writing_bot.load_extension('cogs.writing_greetings')
-print('Loading extension 2')
+print('Loading cogs.thesaurus_cmds extension.')
 writing_bot.load_extension('cogs.thesaurus_cmds')
+print('Loading cogs.poetry extension.')
+writing_bot.load_extension('cogs.poetry')
 print('Starting bot.')
 writing_bot.run(WRITING_BOT_TOKEN)
