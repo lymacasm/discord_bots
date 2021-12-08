@@ -64,7 +64,7 @@ def get_ev_yield(pokemon: str):
         
         Returns:
             (success, return_data):
-                - success of True indicates that ev yield was found, and the return_data is the EV yield as a string
+                - success of True indicates that the pokemon was found, and the return_data is the EV yield as a string
                 - success of False indicates that the pokemon wasn't found, and the return_data is a list of suggested pokemon names that are similar
 
         Exceptions:
@@ -87,7 +87,7 @@ def get_ev_yield(pokemon: str):
             raise WebParseException(f'Failed to find EV yield for {pokemon}. Failed to parse "td" from "EV yield".')
         return (True, ev_value.get_text(strip=True).split(', '))
 
-def get_type(pokemon: str) -> list[str]:
+def get_types(pokemon: str) -> list[str]:
     """
     Looks up the type(s) of a pokemon using https://pokemondb.net/pokedex/. 
     Either returns type(s), or suggestions for pokemon names that are similar if that pokemon wasn't found.
@@ -97,7 +97,7 @@ def get_type(pokemon: str) -> list[str]:
         
         Returns:
             (success, return_data):
-                - success of True indicates that type was found, and the return_data is a list of types
+                - success of True indicates that the pokemon was found, and the return_data is a list of types
                 - success of False indicates that the pokemon wasn't found, and the return_data is a list of suggested pokemon names that are similar
 
         Exceptions:
@@ -124,3 +124,41 @@ def get_type(pokemon: str) -> list[str]:
         if len(types) == 0:
             raise WebParseException(f'Failed to find Type for {pokemon}. Failed to find any "a" in the "td" element for "Type".')
         return (True, types)
+
+def get_egg_groups(pokemon: str) -> list[str]:
+    """
+    Looks up the egg group(s) of a pokemon using https://pokemondb.net/pokedex/. 
+    Either returns egg group(s), or suggestions for pokemon names that are similar if that pokemon wasn't found.
+
+        Parameters:
+            pokemon (str): A pokemon to lookup in the db
+        
+        Returns:
+            (success, return_data):
+                - success of True indicates that the pokemon was found, and the return_data is a list of egg groups
+                - success of False indicates that the pokemon wasn't found, and the return_data is a list of suggested pokemon names that are similar
+
+        Exceptions:
+            Throws:
+                - WebRequestException
+                - WebParseException
+    """
+    (soup, suggestions) = _get_pokemon_pokedex_entry(pokemon)
+    if suggestions is not None:
+        return (False, suggestions)
+    else:
+        # Parse the Type
+        egg_groups_name = soup.find('th', text='Egg Groups')
+        if egg_groups_name is None:
+            raise WebParseException(f'Failed to find Egg Groups for {pokemon}. Failed to parse "th" with text "Egg Groups" from webpage.')
+        
+        # Parse the Type value
+        egg_groups_list = egg_groups_name.parent.find('td')
+        if egg_groups_list is None:
+            raise WebParseException(f'Failed to find Type for {pokemon}. Failed to parse "td" from "Egg Groups".')
+
+        # Read out all the types
+        egg_groups = [span.get_text(strip=True) for span in egg_groups_list.find_all('a')]
+        if len(egg_groups) == 0:
+            raise WebParseException(f'Failed to find Type for {pokemon}. Failed to find any "a" in the "td" element for "Egg Groups".')
+        return (True, egg_groups)
