@@ -1,17 +1,17 @@
 import requests
 from bs4 import BeautifulSoup
 
-from scrapers import ScraperException
+import scrapers
 
-class ThesaurusScraperException(ScraperException):
+class ThesaurusScraperException(scrapers.ScraperException):
     """ Base exception class for this module. """
     pass
 
-class WebRequestException(ThesaurusScraperException):
+class WebRequestException(ThesaurusScraperException, scrapers.RequestException):
     """ A web request error occurred. Inherits from ThesaurusScraperException. """
     pass
 
-class WebParseException(ThesaurusScraperException):
+class WebParseException(ThesaurusScraperException, scrapers.ParseException):
     """ An error occurred during webpage parsing. Inherits from ThesaurusScraperException. """
     pass
 
