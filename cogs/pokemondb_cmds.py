@@ -12,7 +12,7 @@ class PokemonDBCommands(commands.Cog):
     async def on_ready(self):
         print(f'PokemonDBCommands connected as User: {self.bot.user}, ID: {self.bot.user.id}.')
 
-    async def __pokemon_lookup_cmd(self, ctx, lookup_fn, pokemon: str, *args, join_str=', '):
+    async def __pokemon_lookup_cmd(self, ctx, lookup_fn, pokemon: str, *args, results_fm=lambda r: ', '.join(r)):
         # Validate args
         if len(args) > 0:
             await ctx.reply(f"Oh my, that's a lot of wild pokemon there. I can only lookup one at a time.")
@@ -34,7 +34,7 @@ class PokemonDBCommands(commands.Cog):
 
         # Return result
         if success:
-            await ctx.reply(join_str.join(results))
+            await ctx.reply(results_fm(results))
         else:
             await ctx.reply(f'Pokemon {pokemon} was not found in the Pokedex. Did you mean: {", ".join(results)}?')
 
@@ -44,11 +44,16 @@ class PokemonDBCommands(commands.Cog):
 
     @commands.command("types")
     async def types(self, ctx, pokemon: str, *args):
-        await self.__pokemon_lookup_cmd(ctx, pokemondb.get_types, pokemon, *args, join_str=' and ')
+        await self.__pokemon_lookup_cmd(ctx, pokemondb.get_types, pokemon, *args, results_fm=lambda r: ' and '.join(r))
 
     @commands.command("egg_groups")
     async def egg_groups(self, ctx, pokemon: str, *args):
         await self.__pokemon_lookup_cmd(ctx, pokemondb.get_egg_groups, pokemon, *args)
+
+    @commands.command("abilities")
+    async def abilities(self, ctx, pokemon: str, *args):
+        await self.__pokemon_lookup_cmd(ctx, pokemondb.get_abilities, pokemon, *args, 
+            results_fm=lambda r: '\n'.join([f'{r[i]}' if r[i].hidden else f'{i+1}. {r[i]}' for i in range(len(r))]))
 
 def setup(bot):
     bot.add_cog(PokemonDBCommands(bot))

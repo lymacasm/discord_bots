@@ -1,5 +1,6 @@
 import requests
 from bs4 import BeautifulSoup
+from bs4.element import Tag
 from requests.api import request
 
 import scrapers
@@ -15,6 +16,19 @@ class WebRequestException(PokemonDBScraperException, scrapers.RequestException):
 class WebParseException(PokemonDBScraperException, scrapers.ParseException):
     """ An error occurred during webpage parsing. Inherits from ThesaurusScraperException. """
     pass
+
+class Ability:
+    def __init__(self, name: str, description: str, hidden: bool):
+        self.name = name
+        self.description = description
+        self.hidden = hidden
+
+    def __str__(self) -> str:
+        return '{}{}: {}'.format(
+            self.name,
+            ' (Hidden Ability)' if self.hidden else '',
+            self.description
+        )
 
 def _parse_pokemon_suggestions(pokemon, soup):
     suggestions = []
@@ -162,3 +176,47 @@ def get_egg_groups(pokemon: str) -> list[str]:
         if len(egg_groups) == 0:
             raise WebParseException(f'Failed to find Type for {pokemon}. Failed to find any "a" in the "td" element for "Egg Groups".')
         return (True, egg_groups)
+
+def get_abilities(pokemon: str) -> list[Ability]:
+    """
+    Looks up the abilities of a pokemon using https://pokemondb.net/pokedex/. 
+    Either returns abilities, or suggestions for pokemon names that are similar if that pokemon wasn't found.
+
+        Parameters:
+            pokemon (str): A pokemon to lookup in the db
+        
+        Returns:
+            (success, return_data):
+                - success of True indicates that the pokemon was found, and the return_data is a list of abilities
+                - success of False indicates that the pokemon wasn't found, and the return_data is a list of suggested pokemon names that are similar
+
+        Exceptions:
+            Throws:
+                - WebRequestException
+                - WebParseException
+    """
+    (soup, suggestions) = _get_pokemon_pokedex_entry(pokemon)
+    if suggestions is not None:
+        return (False, suggestions)
+    else:
+        # Parse the Type
+        abilities_name = soup.find('th', text='Abilities')
+        if abilities_name is None:
+            raise WebParseException(f'Failed to find Abilities for {pokemon}. Failed to parse "th" with text "Abilities" from webpage.')
+        
+        # Parse the Type value
+        abilities_list = abilities_name.parent.find('td')
+        if abilities_list is None:
+            raise WebParseException(f'Failed to find Type for {pokemon}. Failed to parse "td" from "Abilities".')
+
+        abilities = []
+        for a in abilities_list.find_all('a'):
+            name = a.get_text(strip=True)
+            description = ''
+            if a.has_attr('title'):
+                description = a['title']
+            hidden = a.parent.name == 'small'
+            abilities.append(Ability(name, description, hidden))
+        if len(abilities) == 0:
+            raise WebParseException(f'Failed to find Abilities for {pokemon}. Failed to find any "a" in the "td" element for "Abilities".')
+        return (True, abilities)
