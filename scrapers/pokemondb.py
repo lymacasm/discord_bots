@@ -1,6 +1,5 @@
 import requests
 from bs4 import BeautifulSoup
-from bs4.element import Tag
 from requests.api import request
 
 import scrapers
@@ -254,3 +253,12 @@ def get_egg_group_pokemon(egg_group: str) -> list[str]:
         if len(pokemon) == 0:
             raise WebParseException(f'Failed to find pokemon for egg group {egg_group}. Failed to find any "a" in the web page with class "ent-name".')
         return (True, pokemon)
+
+def get_pokemon_image_url(pokemon: str) -> str:
+    url = f'https://img.pokemondb.net/artwork/{pokemon}.jpg'
+    response = requests.get(url)
+    try:
+        response.raise_for_status()
+    except requests.exceptions.RequestException as e:
+        raise WebRequestException(f'Failed to GET request to URL {url}. Error: {e}')
+    return url

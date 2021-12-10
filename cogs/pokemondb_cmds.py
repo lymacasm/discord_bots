@@ -1,3 +1,4 @@
+import discord
 from discord.ext import commands
 
 import scrapers.pokemondb as pokemondb
@@ -22,13 +23,11 @@ class PokemonDBCommands(commands.Cog):
         try:
             (success, results) = lookup_fn(pokemon)
         except pokemondb.WebRequestException as e:
-            with open('err.log', 'a') as f:
-                f.write(f'WebRequestException in get_ev_yield call: {e}\n')
+            print(f'WebRequestException in get_ev_yield call: {e}\n')
             await ctx.reply(f"{str(self.bot.user).split('#')[0]} whited out! Turns out {pokemon} isn't a real pokemon.")
             return
         except pokemondb.WebParseException as e:
-            with open('err.log', 'a') as f:
-                f.write(f'WebParseException in get_synonym call: {e}\n')
+            print(f'WebParseException in get_synonym call: {e}\n')
             await ctx.reply(f"{str(self.bot.user).split('#')[0]} used SPLASH! It had no effect. Please contact tech support to fix your broken pokemon.")
             return
 
@@ -47,13 +46,11 @@ class PokemonDBCommands(commands.Cog):
         try:
             (success, results) = lookup_fn(egg_group)
         except pokemondb.WebRequestException as e:
-            with open('err.log', 'a') as f:
-                f.write(f'WebRequestException in get_ev_yield call: {e}\n')
+            print(f'WebRequestException in get_ev_yield call: {e}\n')
             await ctx.reply(f"{str(self.bot.user).split('#')[0]} whited out! Pokemon daycare is exhausting, so I decided not to grab egg group of {egg_group} for you.")
             return
         except pokemondb.WebParseException as e:
-            with open('err.log', 'a') as f:
-                f.write(f'WebParseException in get_synonym call: {e}\n')
+            print(f'WebParseException in get_synonym call: {e}\n')
             await ctx.reply(f"{str(self.bot.user).split('#')[0]} used SPLASH! It had no effect. Please contact tech support to fix your broken pokemon.")
             return
 
@@ -92,6 +89,23 @@ class PokemonDBCommands(commands.Cog):
     async def abilities(self, ctx, pokemon: str, *args):
         await self.__pokemon_lookup_cmd(ctx, pokemondb.get_abilities, pokemon, *args, 
             results_fm=lambda r: '\n'.join([f'{r[i]}' if r[i].hidden else f'{i+1}. {r[i]}' for i in range(len(r))]))
+
+    @commands.command("view")
+    async def view_pokemon(self, ctx, pokemon: str, *args):
+        if len(args) > 0:
+            await ctx.reply(f"Oh my, that's a lot of wild pokemon there. I can only lookup one at a time.")
+            return
+
+        try:
+            url = pokemondb.get_pokemon_image_url(pokemon)
+        except pokemondb.WebRequestException as e:
+            print(f'WebRequestException in get_pokemon_image: {e}')
+            await ctx.reply(f"{str(self.bot.user).split('#')[0]} whited out! Turns out {pokemon} isn't a real pokemon.")
+            return
+
+        embed = discord.Embed(color=0xffffff)
+        embed.set_image(url=url)
+        await ctx.reply(embed=embed)
 
 def setup(bot):
     bot.add_cog(PokemonDBCommands(bot))
