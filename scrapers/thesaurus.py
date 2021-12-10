@@ -1,7 +1,10 @@
 import requests
 from bs4 import BeautifulSoup
+from PyDictionary import PyDictionary
 
 import scrapers
+
+dictionary = PyDictionary()
 
 class ThesaurusScraperException(scrapers.ScraperException):
     """ Base exception class for this module. """
@@ -78,3 +81,9 @@ def get_synonym(word: str) -> tuple[bool, list[str]]:
             return (False, suggestions)
         except WebParseException as sug_err:
             raise WebParseException(f'Failed to parse the webpage. Synonym parse error: {syn_err} Suggestion parse error: {sug_err}')
+
+def get_definition(word: str) -> dict[list[str]]:
+    meaning = dictionary.meaning(word, disable_errors=True)
+    if meaning is None:
+        raise WebRequestException(f'Failed to find meaning for word {meaning}.')
+    return meaning

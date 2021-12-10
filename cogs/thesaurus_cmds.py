@@ -14,7 +14,6 @@ class ThesaurusCommands(commands.Cog):
 
     @commands.command()
     async def synonym(self, ctx, word: str, *args):
-        # Validate args
         print_word = word
         if len(args) > 0:
             word_list = [word] + list(args)
@@ -25,13 +24,11 @@ class ThesaurusCommands(commands.Cog):
         try:
             (sucess, results) = thesaurus.get_synonym(word)
         except thesaurus.WebRequestException as e:
-            with open('err.log', 'a') as f:
-                f.write(f'WebRequestException in get_synonym call: {e}\n')
+            print(f'WebRequestException in get_synonym call: {e}')
             await ctx.send(f'No synonyms found for {print_word}.')
             return
         except thesaurus.WebParseException as e:
-            with open('err.log', 'a') as f:
-                f.write(f'WebParseException in get_synonym call: {e}\n')
+            print(f'WebParseException in get_synonym call: {e}')
             await ctx.send(f'Failed to find synonyms for {print_word}. Please contact bot tech for help.')
             return
 
@@ -40,6 +37,29 @@ class ThesaurusCommands(commands.Cog):
             await ctx.send(', '.join(results))
         else:
             await ctx.send(f'No synonyms found for {print_word}. Did you mean: {", ".join(results)}?')
+
+    @commands.command()
+    async def define(self, ctx, word: str, *args):
+        if len(args) > 0:
+            await ctx.send(f'One. Word. At. A. Time. *PLEASE*.')
+            return
+
+        try:
+            result = thesaurus.get_definition(word)
+        except thesaurus.WebRequestException as e:
+            print(f'WebParseException in get_definition call: {e}')
+            await ctx.send(f":bell: Ding dong that spelling is wrong :bell:")
+            return
+
+        response = ''
+        for type, definitions in result.items():
+            response += f"{type}:\n"
+            count = 1
+            for definition in definitions:
+                response += f"\t{count}. {definition}\n"
+                count += 1
+            definition += "\n"
+        await ctx.send(response)
 
 def setup(bot):
     bot.add_cog(ThesaurusCommands(bot))
