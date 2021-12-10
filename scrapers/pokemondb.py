@@ -30,7 +30,7 @@ class Ability:
             self.description
         )
 
-def _parse_pokemon_suggestions(pokemon, soup):
+def _parse_suggestions(search_item, soup):
     suggestions = []
     for li in soup.find_all('li'):
         a = li.find('a', href=True)
@@ -38,14 +38,13 @@ def _parse_pokemon_suggestions(pokemon, soup):
             raise WebParseException('Failed to parse "a" from "li" for word suggestions.')
 
         if a['href'] is not None and len(a['href'].split('/')) == 3:
-            suggestions.append(a['href'].split('/')[-1])
+            suggestions.append(a['href'].split('/')[-1].replace('-', ' '))
 
     if len(suggestions) == 0:
-        raise WebParseException(f'Failed to find any suggestions for {pokemon}.')
+        raise WebParseException(f'Failed to find any suggestions for {search_item}.')
     return suggestions
 
-def _get_pokemon_pokedex_entry(pokemon):
-    url = f'https://pokemondb.net/pokedex/{pokemon}'
+def _get_page_info(search_item, url):
     response = requests.get(url)
     soup = None
     if response.text is not None:
@@ -60,13 +59,19 @@ def _get_pokemon_pokedex_entry(pokemon):
         response.raise_for_status()
     except requests.exceptions.RequestException as e:
         if response.status_code == 404 and soup is not None:
-            return (soup, _parse_pokemon_suggestions(pokemon, soup))
+            return (soup, _parse_suggestions(search_item, soup))
         else:
             raise WebRequestException(f'Failed to GET request to URL {url}. Error: {e}')
 
     if soup is None:
         raise WebParseException(f'Failed to parse soup for URL {url}.')
     return (soup, None)
+
+def _get_pokemon_pokedex_entry(pokemon):
+    return _get_page_info(pokemon, f'https://pokemondb.net/pokedex/{pokemon}')
+
+def _get_egg_group(egg_group):
+    return _get_page_info(egg_group, f'https://pokemondb.net/egg-group/{egg_group}')
 
 def get_ev_yield(pokemon: str):
     """
@@ -220,3 +225,32 @@ def get_abilities(pokemon: str) -> list[Ability]:
         if len(abilities) == 0:
             raise WebParseException(f'Failed to find Abilities for {pokemon}. Failed to find any "a" in the "td" element for "Abilities".')
         return (True, abilities)
+
+def get_egg_group_pokemon(egg_group: str) -> list[str]:
+    """
+    Looks up the pokemon in specified egg group using https://pokemondb.net/pokedex/. 
+    Either returns list of pokemon, or suggestions for egg groups that are similar if none are found.
+
+        Parameters:
+            pokemon (str): A pokemon to lookup in the db
+
+        Returns:
+            (success, return_data):
+                - success of True indicates that the egg group was found, and the return_data is a list of pokemon from that group
+                - success of False indicates that the egg group wasn't found, and the return_data is a list of suggested egg group names that are similar
+
+        Exceptions:
+            Throws:
+                - WebRequestException
+                - WebParseException
+    """
+    (soup, suggestions) = _get_egg_group(egg_group)
+    if suggestions is not None:
+        return (False, suggestions)
+    else:
+        pokemon = []
+        for span in soup.find_all('a', {'class': 'ent-name'}):
+            pokemon.append(span.get_text(strip=True))
+        if len(pokemon) == 0:
+            raise WebParseException(f'Failed to find pokemon for egg group {egg_group}. Failed to find any "a" in the web page with class "ent-name".')
+        return (True, pokemon)

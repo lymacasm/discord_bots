@@ -38,6 +38,40 @@ class PokemonDBCommands(commands.Cog):
         else:
             await ctx.reply(f'Pokemon {pokemon} was not found in the Pokedex. Did you mean: {", ".join(results)}?')
 
+    async def __egg_group_lookup_cmd(self, ctx, lookup_fn, egg_group: str, *args, join_str=', '):
+        # Validate args
+        if len(args) > 0:
+            egg_group = '-'.join([egg_group] + list(args))
+
+        # Get the field
+        try:
+            (success, results) = lookup_fn(egg_group)
+        except pokemondb.WebRequestException as e:
+            with open('err.log', 'a') as f:
+                f.write(f'WebRequestException in get_ev_yield call: {e}\n')
+            await ctx.reply(f"{str(self.bot.user).split('#')[0]} whited out! Pokemon daycare is exhausting, so I decided not to grab egg group of {egg_group} for you.")
+            return
+        except pokemondb.WebParseException as e:
+            with open('err.log', 'a') as f:
+                f.write(f'WebParseException in get_synonym call: {e}\n')
+            await ctx.reply(f"{str(self.bot.user).split('#')[0]} used SPLASH! It had no effect. Please contact tech support to fix your broken pokemon.")
+            return
+
+        # Return result
+        if success:
+            result_str = ''
+            for i in range(len(results)):
+                if i == 0:
+                    result_str = str(results[i])
+                elif (len(result_str) + len(str(results[i])) + len(join_str)) > 2000:
+                    await ctx.reply(result_str)
+                    result_str = str(results[i])
+                else:
+                    result_str += ', ' + str(results[i])
+            await ctx.reply(result_str)
+        else:
+            await ctx.reply(f"Egg group {egg_group} doesn't exist. Did you mean: {', '.join(results)}?")
+
     @commands.command("ev")
     async def ev_yield(self, ctx, pokemon: str, *args):
         await self.__pokemon_lookup_cmd(ctx, pokemondb.get_ev_yield, pokemon, *args)
@@ -49,6 +83,10 @@ class PokemonDBCommands(commands.Cog):
     @commands.command("egg_groups")
     async def egg_groups(self, ctx, pokemon: str, *args):
         await self.__pokemon_lookup_cmd(ctx, pokemondb.get_egg_groups, pokemon, *args)
+
+    @commands.command("egg_group")
+    async def egg_group(self, ctx, egg_group: str, *args):
+        await self.__egg_group_lookup_cmd(ctx, pokemondb.get_egg_group_pokemon, egg_group, *args)
 
     @commands.command("abilities")
     async def abilities(self, ctx, pokemon: str, *args):
