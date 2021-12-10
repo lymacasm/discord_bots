@@ -225,6 +225,39 @@ def get_abilities(pokemon: str) -> list[Ability]:
             raise WebParseException(f'Failed to find Abilities for {pokemon}. Failed to find any "a" in the "td" element for "Abilities".')
         return (True, abilities)
 
+def get_evolutions(pokemon: str) -> list[Ability]:
+    """
+    Looks up all the evolutions of a pokemon using https://pokemondb.net/pokedex/.
+    Either returns evolutions, or suggestions for pokemon names that are similar if that pokemon wasn't found.
+
+        Parameters:
+            pokemon (str): A pokemon to lookup in the db
+
+        Returns:
+            (success, return_data):
+                - success of True indicates that the pokemon was found, and the return_data is a list of evolutions
+                - success of False indicates that the pokemon wasn't found, and the return_data is a list of suggested pokemon names that are similar
+
+        Exceptions:
+            Throws:
+                - WebRequestException
+                - WebParseException
+    """
+    (soup, suggestions) = _get_pokemon_pokedex_entry(pokemon)
+    if suggestions is not None:
+        return (False, suggestions)
+    else:
+        # Parse the Type
+        evolutions = []
+        for evolution_list in soup.find_all('div', {'class': 'infocard-list-evo'}):
+            for a in evolution_list.find_all('a', {'class': 'ent-name'}):
+                evolution = a.get_text(strip=True)
+                if evolution not in evolutions:
+                    evolutions.append(evolution)
+        if len(evolutions) == 0:
+            raise WebParseException(f'Failed to find Evolutions for {pokemon}. Failed to find any "a" in the "div" element with class "infocard-list-evo".')
+        return (True, evolutions)
+
 def get_egg_group_pokemon(egg_group: str) -> list[str]:
     """
     Looks up the pokemon in specified egg group using https://pokemondb.net/pokedex/. 

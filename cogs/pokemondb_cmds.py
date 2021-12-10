@@ -77,6 +77,10 @@ class PokemonDBCommands(commands.Cog):
     async def types(self, ctx, pokemon: str, *args):
         await self.__pokemon_lookup_cmd(ctx, pokemondb.get_types, pokemon, *args, results_fm=lambda r: ' and '.join(r))
 
+    @commands.command("evolutions")
+    async def evolutions(self, ctx, pokemon: str, *args):
+        await self.__pokemon_lookup_cmd(ctx, pokemondb.get_evolutions, pokemon, *args, results_fm=lambda r: '\n'.join(r))
+
     @commands.command("egg_groups")
     async def egg_groups(self, ctx, pokemon: str, *args):
         await self.__pokemon_lookup_cmd(ctx, pokemondb.get_egg_groups, pokemon, *args)
