@@ -21,21 +21,17 @@ class PokemonDBCommands(commands.Cog):
 
         # Get the field
         try:
-            (success, results) = lookup_fn(pokemon)
+            results = lookup_fn(pokemon)
         except pokemondb.WebRequestException as e:
             print(f'WebRequestException in get_ev_yield call: {e}\n')
             await ctx.reply(f"{str(self.bot.user).split('#')[0]} whited out! Turns out {pokemon} isn't a real pokemon.")
-            return
         except pokemondb.WebParseException as e:
             print(f'WebParseException in get_synonym call: {e}\n')
             await ctx.reply(f"{str(self.bot.user).split('#')[0]} used SPLASH! It had no effect. Please contact tech support to fix your broken pokemon.")
-            return
-
-        # Return result
-        if success:
-            await ctx.reply(results_fm(results))
+        except pokemondb.WebSuggestionException as suggestions:
+            await ctx.reply(f'Pokemon {pokemon} was not found in the Pokedex. Did you mean: {suggestions}?')
         else:
-            await ctx.reply(f'Pokemon {pokemon} was not found in the Pokedex. Did you mean: {", ".join(results)}?')
+            await ctx.reply(results_fm(results))
 
     async def __egg_group_lookup_cmd(self, ctx, lookup_fn, egg_group: str, *args, join_str=', '):
         # Validate args
@@ -44,18 +40,16 @@ class PokemonDBCommands(commands.Cog):
 
         # Get the field
         try:
-            (success, results) = lookup_fn(egg_group)
+            results = lookup_fn(egg_group)
         except pokemondb.WebRequestException as e:
             print(f'WebRequestException in get_ev_yield call: {e}\n')
             await ctx.reply(f"{str(self.bot.user).split('#')[0]} whited out! Pokemon daycare is exhausting, so I decided not to grab egg group of {egg_group} for you.")
-            return
         except pokemondb.WebParseException as e:
             print(f'WebParseException in get_synonym call: {e}\n')
             await ctx.reply(f"{str(self.bot.user).split('#')[0]} used SPLASH! It had no effect. Please contact tech support to fix your broken pokemon.")
-            return
-
-        # Return result
-        if success:
+        except pokemondb.WebSuggestionException as suggestions:
+            await ctx.reply(f"Egg group {egg_group} doesn't exist. Did you mean: {suggestions}?")
+        else:
             result_str = ''
             for i in range(len(results)):
                 if i == 0:
@@ -66,8 +60,6 @@ class PokemonDBCommands(commands.Cog):
                 else:
                     result_str += ', ' + str(results[i])
             await ctx.reply(result_str)
-        else:
-            await ctx.reply(f"Egg group {egg_group} doesn't exist. Did you mean: {', '.join(results)}?")
 
     @commands.command("ev")
     async def ev_yield(self, ctx, pokemon: str, *args):
@@ -93,6 +85,10 @@ class PokemonDBCommands(commands.Cog):
     async def abilities(self, ctx, pokemon: str, *args):
         await self.__pokemon_lookup_cmd(ctx, pokemondb.get_abilities, pokemon, *args, 
             results_fm=lambda r: '\n'.join([f'{r[i]}' if r[i].hidden else f'{i+1}. {r[i]}' for i in range(len(r))]))
+
+    @commands.command("stats")
+    async def abilities(self, ctx, pokemon: str, *args):
+        await self.__pokemon_lookup_cmd(ctx, pokemondb.get_base_stats, pokemon, *args, results_fm=lambda r: str(r))
 
     @commands.command("view")
     async def view_pokemon(self, ctx, pokemon: str, *args):
