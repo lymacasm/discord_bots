@@ -57,5 +57,9 @@ class PokemonTrackingCommands(commands.Cog):
     async def get_pokemon_stats(self, ctx, pokemon_id: int, level: int, *args):
         await ctx.reply(poke_classes.get_stat_range_str(*self.pokemon_tracking.get_pokemon_stats(self.get_user(ctx), pokemon_id, level)))
 
+    @commands.command("track-set-evolution")
+    async def set_pokemon_evolution(self, ctx, pokemon_id: int, evolution_name: str, *args):
+        await ctx.reply(self.pokemon_tracking.change_evolution(self.get_user(ctx), pokemon_id, evolution_name))
+
 def setup(bot):
     bot.add_cog(PokemonTrackingCommands(bot))

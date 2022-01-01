@@ -68,6 +68,22 @@ class _Pokemon:
         pokemon.ivs_max = PokemonStats(*[int(prop) for prop in properties[15:21]])
         return pokemon
 
+    def change_evolution(self, new_name):
+        try:
+            evolutions = pokemondb.get_evolutions(self.__name)
+        except scrapers.SuggestionException:
+            raise PokemonTrackingException(f'Pokemon {self.__name} was not found in the Pokedex. It is possible the data has been corrupted.')
+        
+        if new_name.lower() not in [e.lower() for e in evolutions]:
+            raise PokemonNotFoundException(f'Pokemon {new_name} is not an evolution of {self.__name}. ' +
+                f'All possible evolutions are: {", ".join(evolutions)}.' if len(evolutions) > 0 else f'There are no evolutions for {self.__name}.')
+
+        try:
+            self.base_stats = pokemondb.get_base_stats(new_name)
+        except scrapers.SuggestionException:
+            raise PokemonTrackingException(f'Pokemon {new_name} was not found in the Pokedex but was found in evolution list. Weird.')
+        self.__name = new_name
+
     def to_csv(self):
         return f'{self.__name},{self.__nature_name},{self.nickname},{self.evs.to_csv()},{self.ivs_min.to_csv()},{self.ivs_max.to_csv()}'
 
@@ -153,3 +169,11 @@ class _PokemonTrackingBase:
         if pokemon_id >= len(self.pokemon[user]):
             raise PokemonNotFoundException(f'Failed to find any pokemon with ID {pokemon_id}.')
         return self.pokemon[user][pokemon_id].compute_stats_min_max(level)
+
+    def change_evolution(self, user, pokemon_id, new_pokemon_name) -> str:
+        if user not in self.pokemon:
+            raise PokemonNotFoundException('No pokemon tracked for current user.')
+        if pokemon_id >= len(self.pokemon[user]):
+            raise PokemonNotFoundException(f'Failed to find any pokemon with ID {pokemon_id}.')
+        self.pokemon[user][pokemon_id].change_evolution(new_pokemon_name)
+        return f'{pokemon_id}: {self.pokemon[user][pokemon_id].get_name()}'
