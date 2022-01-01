@@ -1,7 +1,7 @@
 import requests
 from bs4 import BeautifulSoup
 from requests.api import request
-from utility.pokemon_classes import PokemonStats
+from utility.pokemon import PokemonStats
 
 import scrapers
 
