@@ -10,9 +10,9 @@ class PokemonTrackingSQL(poketrack._PokemonTrackingBase):
 
     def __init__(self):
         try:
-            database_url = os.environ['DATABASE_URL']
+            database_url = os.environ['SQL_DATABASE_URL']
         except:
-            raise poketrack.PokemonTrackingException('Failed to find DATABASE_URL environment variable.')
+            raise poketrack.PokemonTrackingException('Failed to find SQL_DATABASE_URL environment variable.')
         
         try:
             self.__database_name = os.environ['DATABASE_NAME']
