@@ -386,6 +386,7 @@ class _PokemonTrackingBase:
 
         for _i in range(count):
             self.pokemon[user][pokemon_id].evs += ev_change
+        self.save_state(user)
         return self.pokemon[user][pokemon_id].evs
 
     def consume_ev_vitamin_str(self, user, pokemon_id, vitamin, count=1):
@@ -401,6 +402,7 @@ class _PokemonTrackingBase:
 
         for _i in range(count):
             self.pokemon[user][pokemon_id].evs += ev_change
+        self.save_state(user)
         return self.pokemon[user][pokemon_id].evs
 
     def consume_ev_berry_str(self, user, pokemon_id, berry, count=1):
