@@ -24,7 +24,7 @@ class PokemonTrackingCommands(commands.Cog):
 
         # Create an undo list for the undo command
         try:
-            self.undo_count = os.environ['POKEMON_TRACKING_UNDO_COUNT']
+            self.undo_count = int(os.environ['POKEMON_TRACKING_UNDO_COUNT'])
             print(f'Using undo count of {self.undo_count}.')
         except:
             self.undo_count = PokemonTrackingCommands.undo_count

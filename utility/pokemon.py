@@ -11,6 +11,10 @@ class PokemonStats:
     def from_obj(cls, obj):
         return cls(obj.hp, obj.attack, obj.defense, obj.sp_atk, obj.sp_def, obj.speed, obj.__max_val, obj.__max_total)
 
+    @classmethod
+    def from_dict(cls, in_dict, max_val = 10000, max_total = 60000):
+        return cls(in_dict['hp'], in_dict['attack'], in_dict['defense'], in_dict['sp_atk'], in_dict['sp_def'], in_dict['speed'], max_val, max_total)
+
     def __str__(self):
         return f'HP:  {self.hp}\nAttack:  {self.attack}\nDefense:  {self.defense}\nSp. Atk:  {self.sp_atk}\nSp. Def:  {self.sp_def}\nSpeed:  {self.speed}\n**Total:  {self.total}**'
 
@@ -31,6 +35,16 @@ class PokemonStats:
                     new.total = new.__max_total
                 setattr(new, stat, new_val)
         return new
+
+    def to_dict(self):
+        return {
+            'hp': self.hp,
+            'attack': self.attack,
+            'defense': self.defense,
+            'sp_atk': self.sp_atk,
+            'sp_def': self.sp_def,
+            'speed': self.speed
+        }
 
     def set_stats(self, hp, attack, defense, sp_attack, sp_defense, speed):
         self.hp = hp

@@ -71,6 +71,14 @@ class _Pokemon:
         pokemon.ivs_max = PokemonStats(*[int(prop) for prop in properties[15:21]])
         return pokemon
 
+    @classmethod
+    def from_dict(cls, in_dict: dict):
+        pokemon = cls(in_dict['name'], in_dict['nature'], in_dict['nickname'])
+        pokemon.evs = PokemonStats.from_dict({key.split('.')[-1]: val for key, val in in_dict.items() if 'evs.' in key}, max_val=252, max_total=510)
+        pokemon.ivs_min = PokemonStats.from_dict({key.split('.')[-1]: val for key, val in in_dict.items() if 'ivs_min.' in key})
+        pokemon.ivs_max = PokemonStats.from_dict({key.split('.')[-1]: val for key, val in in_dict.items() if 'ivs_max.' in key})
+        return pokemon
+
     def change_evolution(self, new_name: str):
         try:
             evolutions = pokemondb.get_evolutions(self._name)
@@ -90,6 +98,21 @@ class _Pokemon:
 
     def to_csv(self):
         return f'{self._name},{self._nature_name},{self.nickname},{self.evs.to_csv()},{self.ivs_min.to_csv()},{self.ivs_max.to_csv()}'
+
+    def to_dict(self):
+        poke_dict = {
+            'name': self._name,
+            'nature': self._nature_name,
+            'nickname': self.nickname,
+        }
+        for key, val in self.evs.to_dict().items():
+            poke_dict[f'evs.{key}'] = val
+        for key, val in self.ivs_min.to_dict().items():
+            poke_dict[f'ivs_min.{key}'] = val
+        for key, val in self.ivs_max.to_dict().items():
+            poke_dict[f'ivs_max.{key}'] = val
+        return poke_dict
+        
 
     def get_name(self):
         name = self._name
@@ -141,6 +164,9 @@ class _PokemonTrackingBase:
 
     def save_state(self, user):
         raise NotImplementedError('Method "save_state" has not been implemented.')
+
+    def to_dict(self):
+        return {(user, i): self.pokemon[user][i].to_dict() for user in self.pokemon for i in range(len(self.pokemon[user]))}
 
     def __check_user(self, user):
         if user not in self.pokemon:
