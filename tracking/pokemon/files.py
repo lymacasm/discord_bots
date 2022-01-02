@@ -17,8 +17,7 @@ class PokemonTrackingFiles(poketrack._PokemonTrackingBase):
                 for line in f.readlines():
                     self.pokemon[user].append(poketrack._Pokemon.from_csv(line))
 
-    def save_state(self):
-        for user, pokemon_list in self.pokemon.items():
-            with open(os.path.join(self.base_dir, f'pokemon_{user}.csv'), 'w') as f:
-                for pokemon in pokemon_list:
-                    f.write(pokemon.to_csv() + '\n')
+    def save_state(self, user):
+        with open(os.path.join(self.base_dir, f'pokemon_{user}.csv'), 'w') as f:
+            for pokemon in self.pokemon[user]:
+                f.write(pokemon.to_csv() + '\n')

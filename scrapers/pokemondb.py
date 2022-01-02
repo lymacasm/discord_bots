@@ -78,7 +78,7 @@ def _get_pokemon_pokedex_entry(pokemon):
 def _get_egg_group(egg_group):
     return _get_page_info(egg_group, f'https://pokemondb.net/egg-group/{egg_group}')
 
-def get_ev_yield(pokemon: str) -> str:
+def get_ev_yield(pokemon: str) -> list[str]:
     """
     Looks up the EV yield of a pokemon using https://pokemondb.net/pokedex/. 
     Either returns EV yield, or suggestions for pokemon names that are similar if that pokemon wasn't found.
@@ -106,6 +106,46 @@ def get_ev_yield(pokemon: str) -> str:
     if ev_value is None:
         raise WebParseException(f'Failed to find EV yield for {pokemon}. Failed to parse "td" from "EV yield".')
     return ev_value.get_text(strip=True).split(', ')
+
+def get_ev_yield_as_stats(pokemon: str) -> PokemonStats:
+    """
+    Looks up the EV yield of a pokemon using https://pokemondb.net/pokedex/. 
+    Either returns EV yield, or suggestions for pokemon names that are similar if that pokemon wasn't found.
+
+        Parameters:
+            pokemon (str): A pokemon to lookup in the db
+        
+        Returns:
+            ev_yield (PokemonStats): The stats object with the EV Yield
+
+        Exceptions:
+            Throws:
+                - WebRequestException
+                - WebParseException
+                - WebSuggestionException
+    """
+    ev_yield_list = get_ev_yield(pokemon)
+    ev_stats = PokemonStats()
+    for ev_yield in ev_yield_list:
+        names = ev_yield.split(' ')
+        val = int(names[0])
+        if len(names) == 3:
+            stat = 'sp_'
+            if names[2].lower() == 'attack':
+                stat += 'atk'
+            elif names[2].lower() == 'defense':
+                stat += 'def'
+            else:
+                raise WebParseException(f'String "{names[2]}" from the EV yield of "{ev_yield}" was unexpected for pokemon {pokemon}.')
+        elif len(names) == 2:
+            stat = names[1].lower()
+        else:
+            raise WebParseException(f'Unexpected EV yield string of {ev_yield} found for pokemon {pokemon}.')
+
+        if not hasattr(ev_stats, stat):
+            raise WebParseException(f'Class PokemonStats has no attribute "{stat}".')
+        setattr(ev_stats, stat, val)
+    return ev_stats
 
 def get_types(pokemon: str) -> list[str]:
     """
