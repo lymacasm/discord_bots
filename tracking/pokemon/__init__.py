@@ -48,6 +48,24 @@ _natures_map = {
     'quirky': PokemonStats(1.0, 1.0, 1.0, 1.0, 1.0, 1.0),
 }
 
+_vitamins_map = {
+    'hpup': PokemonStats(hp=10),
+    'protein': PokemonStats(attack=10),
+    'iron': PokemonStats(defense=10),
+    'calcium': PokemonStats(sp_attack=10),
+    'zinc': PokemonStats(sp_defense=10),
+    'carbos': PokemonStats(speed=10),
+}
+
+_berries_map = {
+    'pomeg': PokemonStats(hp=-10, min_val=-10),
+    'kelpsy': PokemonStats(attack=-10, min_val=-10),
+    'qualot': PokemonStats(defense=-10, min_val=-10),
+    'hondew': PokemonStats(sp_attack=-10, min_val=-10),
+    'grepa': PokemonStats(sp_defense=-10, min_val=-10),
+    'tamato': PokemonStats(speed=-10, min_val=-10),
+}
+
 class Pokemon:
     def __init__(self, pokemon_name: str, nature: str, nickname = ''):
         self._name = pokemon_name.capitalize()
@@ -357,6 +375,36 @@ class _PokemonTrackingBase:
         for i in range(len(pokemon_id_list)):
             responses.append(f'**{self.get_full_name_str(user, pokemon_id_list[i])}: EVs**\n{evs_list[i]}')
         return '\n\n'.join(responses)
+
+    def consume_ev_vitamin(self, user, pokemon_id, vitamin, count=1):
+        self.__check_user(user)
+        self.__check_pokemon_id(user, pokemon_id)
+        try:
+            ev_change = _vitamins_map[vitamin.lower()]
+        except KeyError:
+            raise PokemonTrackingException(f'Failed to find EV changing vitamin with name {vitamin}. Options are: {list(_vitamins_map.keys())}.')
+
+        for _i in range(count):
+            self.pokemon[user][pokemon_id].evs += ev_change
+        return self.pokemon[user][pokemon_id].evs
+
+    def consume_ev_vitamin_str(self, user, pokemon_id, vitamin, count=1):
+        return f'**{self.get_full_name_str(user, pokemon_id)}: EVs**\n{self.consume_ev_vitamin(user, pokemon_id, vitamin, count)}'
+
+    def consume_ev_berry(self, user, pokemon_id, berry, count=1):
+        self.__check_user(user)
+        self.__check_pokemon_id(user, pokemon_id)
+        try:
+            ev_change = _berries_map[berry.lower()]
+        except KeyError:
+            raise PokemonTrackingException(f'Failed to find EV changing berry with name {berry}. Options are: {list(_berries_map.keys())}.')
+
+        for _i in range(count):
+            self.pokemon[user][pokemon_id].evs += ev_change
+        return self.pokemon[user][pokemon_id].evs
+
+    def consume_ev_berry_str(self, user, pokemon_id, berry, count=1):
+        return f'**{self.get_full_name_str(user, pokemon_id)}: EVs**\n{self.consume_ev_berry(user, pokemon_id, berry, count)}'
 
     def get_nature(self, user, pokemon_id) -> str:
         self.__check_user(user)

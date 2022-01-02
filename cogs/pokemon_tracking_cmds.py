@@ -6,7 +6,6 @@ import tracking.pokemon as poketrack
 import tracking.pokemon.factory as poketrack_factory
 import scrapers
 
-
 class PokemonTrackingCommands(commands.Cog):
     undo_count = 10 # default value
 
@@ -179,6 +178,34 @@ class PokemonTrackingCommands(commands.Cog):
 
         if await self.__pokemon_lookup_tracking_cmd(ctx, self.pokemon_tracking.add_defeated_pokemon_str, defeated_pokemon, pokemon_ids):
             self.add_to_undo_list(user, self.__generic_tracking_cmd, ctx, self.pokemon_tracking.set_evs_multiple_pokemon_str, ids, old_evs)
+
+    @commands.command("track-add-vitamin")
+    async def add_vitamin(self, ctx, pokemon_id: int, vitamin: str, count=1):
+        user = self.get_user(ctx)
+        try:
+            evs = [self.pokemon_tracking.get_evs(user, pokemon_id)]
+            ids = [pokemon_id]
+        except poketrack.PokemonTrackingException as e:
+            print(f'Failed to get old EV. Error: {e}')
+            evs = []
+            ids = []
+
+        if await self.__generic_tracking_cmd(ctx, self.pokemon_tracking.consume_ev_vitamin_str, pokemon_id, vitamin, count):
+            self.add_to_undo_list(user, self.__generic_tracking_cmd, ctx, self.pokemon_tracking.set_evs_multiple_pokemon_str, ids, evs)
+
+    @commands.command("track-add-berry")
+    async def add_berry(self, ctx, pokemon_id: int, berry: str, count=1):
+        user = self.get_user(ctx)
+        try:
+            evs = [self.pokemon_tracking.get_evs(user, pokemon_id)]
+            ids = [pokemon_id]
+        except poketrack.PokemonTrackingException as e:
+            print(f'Failed to get old EV. Error: {e}')
+            evs = []
+            ids = []
+
+        if await self.__generic_tracking_cmd(ctx, self.pokemon_tracking.consume_ev_berry_str, pokemon_id, berry, count):
+            self.add_to_undo_list(user, self.__generic_tracking_cmd, ctx, self.pokemon_tracking.set_evs_multiple_pokemon_str, ids, evs)
 
     @commands.command("track-get-nature")
     async def get_nature(self, ctx, pokemon_id: int):

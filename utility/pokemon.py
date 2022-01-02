@@ -2,18 +2,19 @@ class PokemonStatsError(Exception):
     pass
 
 class PokemonStats:
-    def __init__(self, hp = 0, attack = 0, defense = 0, sp_attack = 0, sp_defense = 0, speed = 0, max_val = 10000, max_total = 60000):
+    def __init__(self, hp = 0, attack = 0, defense = 0, sp_attack = 0, sp_defense = 0, speed = 0, min_val = 0, max_val = 10000, max_total = 60000):
         self.set_stats(hp, attack, defense, sp_attack, sp_defense, speed)
+        self.set_min_stat_val(min_val)
         self.set_max_stat_val(max_val)
         self.set_max_total_val(max_total)
 
     @classmethod
     def from_obj(cls, obj):
-        return cls(obj.hp, obj.attack, obj.defense, obj.sp_atk, obj.sp_def, obj.speed, obj.__max_val, obj.__max_total)
+        return cls(obj.hp, obj.attack, obj.defense, obj.sp_atk, obj.sp_def, obj.speed, obj.__min_val, obj.__max_val, obj.__max_total)
 
     @classmethod
-    def from_dict(cls, in_dict, max_val = 10000, max_total = 60000):
-        return cls(in_dict['hp'], in_dict['attack'], in_dict['defense'], in_dict['sp_atk'], in_dict['sp_def'], in_dict['speed'], max_val, max_total)
+    def from_dict(cls, in_dict, min_val=0, max_val = 10000, max_total = 60000):
+        return cls(in_dict['hp'], in_dict['attack'], in_dict['defense'], in_dict['sp_atk'], in_dict['sp_def'], in_dict['speed'], min_val=min_val, max_val=max_val, max_total=max_total)
 
     def __str__(self):
         return f'HP:  {self.hp}\nAttack:  {self.attack}\nDefense:  {self.defense}\nSp. Atk:  {self.sp_atk}\nSp. Def:  {self.sp_def}\nSpeed:  {self.speed}\n**Total:  {self.total}**'
@@ -29,6 +30,9 @@ class PokemonStats:
                 if new_val > new.__max_val:
                     inc -= new_val - new.__max_val
                     new_val = new.__max_val
+                elif new_val < new.__min_val:
+                    inc -= new_val - new.__min_val
+                    new_val = new.__min_val
                 new.total += inc
                 if new.total > new.__max_total:
                     new_val -= new.total - new.__max_total
@@ -54,6 +58,13 @@ class PokemonStats:
         self.sp_def = sp_defense
         self.speed = speed
         self.compute_total()
+
+    def set_min_stat_val(self, min_stat_val):
+        self.__min_val = min_stat_val
+        for stat in ['hp', 'attack', 'defense', 'sp_atk', 'sp_def', 'speed']:
+            stat_val = getattr(self, stat)
+            if stat_val < min_stat_val:
+                raise PokemonStatsError(f'The {stat} stat value of {stat_val} is below the minimum of {min_stat_val}.')
 
     def set_max_stat_val(self, max_stat_val):
         self.__max_val = max_stat_val
