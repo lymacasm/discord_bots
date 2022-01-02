@@ -15,7 +15,7 @@ class PokemonTrackingFiles(poketrack._PokemonTrackingBase):
                 user = file.split('.')[0].replace('pokemon_', '')
                 self.pokemon[user] = []
                 for line in f.readlines():
-                    self.pokemon[user].append(poketrack._Pokemon.from_csv(line))
+                    self.pokemon[user].append(poketrack.Pokemon.from_csv(line))
 
     def save_state(self, user):
         with open(os.path.join(self.base_dir, f'pokemon_{user}.csv'), 'w') as f:

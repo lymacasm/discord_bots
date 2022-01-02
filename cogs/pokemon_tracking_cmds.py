@@ -46,17 +46,19 @@ class PokemonTrackingCommands(commands.Cog):
         if len(self.undo_list[user]) > self.undo_count:
             self.undo_list[user].pop(0) # Remove from beginning of list (oldest command)
 
-    async def __pokemon_lookup_tracking_cmd(self, ctx, tracking_fn, pokemon, *args) -> bool:
+    async def __pokemon_lookup_tracking_cmd(self, ctx, tracking_fn, pokemon, *args, publish_on_success=True) -> bool:
         user = self.get_user(ctx)
         try:
-            await ctx.reply(tracking_fn(user, pokemon, *args))
-            return True
+            result = tracking_fn(user, pokemon, *args)
+            if publish_on_success:
+                await ctx.reply(result)
+            return (True, result)
         except scrapers.SuggestionException as suggestions:
             await ctx.reply(f'Pokemon {pokemon} was not found in the Pokedex. Did you mean: {suggestions}?')
-            return False
+            return (False, None)
         except poketrack.PokemonTrackingException as e:
             await ctx.reply(e)
-            return False
+            return (False, None)
 
     async def __generic_tracking_cmd(self, ctx, tracking_fn, *args) -> bool:
         user = self.get_user(ctx)
@@ -69,7 +71,31 @@ class PokemonTrackingCommands(commands.Cog):
 
     @commands.command("track-add")
     async def setup_tracking(self, ctx, pokemon: str, nature: str, nickname = '', *args):
-        await self.__pokemon_lookup_tracking_cmd(ctx, self.pokemon_tracking.add_pokemon, pokemon, nature, nickname)
+        success, pokemon_id = await self.__pokemon_lookup_tracking_cmd(ctx, self.pokemon_tracking.add_pokemon, pokemon, nature, nickname, publish_on_success=False)
+        if success:
+            self.add_to_undo_list(self.get_user(ctx), self.__generic_tracking_cmd, ctx, self.pokemon_tracking.remove_pokemon_str, pokemon_id)
+            await self.__generic_tracking_cmd(ctx, self.pokemon_tracking.get_full_name_str, pokemon_id)
+
+    @commands.command("track-remove")
+    async def remove_tracking(self, ctx, pokemon_id: int):
+        # Try and remove the pokemon
+        user = self.get_user(ctx)
+        try:
+            pokemon = self.pokemon_tracking.remove_pokemon(user, pokemon_id)
+        except poketrack.PokemonTrackingException as e:
+            await ctx.reply(e)
+            return
+
+        # Add pokemon to undo list
+        self.add_to_undo_list(user, self.__generic_tracking_cmd, ctx, self.pokemon_tracking.add_pokemon_obj_str, pokemon, pokemon_id)
+
+        # Get the new list
+        response = f'Removed pokemon: **{pokemon.get_name()}**\n\n'
+        try:
+            response += f'New list:\n{self.pokemon_tracking.get_all_pokemon(user)}'
+        except poketrack.PokemonTrackingException as e:
+            response += str(e)
+        await ctx.reply(response)
 
     @commands.command("track-list")
     async def get_pokemon_list(self, ctx):

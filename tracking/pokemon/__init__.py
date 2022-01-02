@@ -48,7 +48,7 @@ _natures_map = {
     'quirky': PokemonStats(1.0, 1.0, 1.0, 1.0, 1.0, 1.0),
 }
 
-class _Pokemon:
+class Pokemon:
     def __init__(self, pokemon_name: str, nature: str, nickname = ''):
         self._name = pokemon_name.capitalize()
         self._nature_name = nature.capitalize()
@@ -156,7 +156,7 @@ class _Pokemon:
 
 class _PokemonTrackingBase:
     def __init__(self):
-        self.pokemon = {} # type: dict[str, list[_Pokemon]]
+        self.pokemon = {} # type: dict[str, list[Pokemon]]
         self.load_state()
 
     def load_state(self):
@@ -176,21 +176,41 @@ class _PokemonTrackingBase:
         if pokemon_id >= len(self.pokemon[user]):
             raise PokemonNotFoundException(f'Failed to find any pokemon with ID {pokemon_id}.')
 
-    def __get_full_name_str(self, user, pokemon_id):
+    def get_full_name_str(self, user, pokemon_id):
         return f'{pokemon_id}: {self.pokemon[user][pokemon_id].get_name()}'
 
-    def add_pokemon(self, user, pokemon_name, nature, nickname = '') -> str:
+    def add_pokemon_obj(self, user, pokemon: Pokemon, idx = 0xFFFFFFFF) -> int:
         if user not in self.pokemon:
             self.pokemon[user] = []
-        self.pokemon[user].append(_Pokemon(pokemon_name, nature, nickname))
+        self.pokemon[user].insert(idx, pokemon)
         self.save_state(user)
-        return self.__get_full_name_str(user, len(self.pokemon[user]) - 1)
+        return len(self.pokemon[user]) - 1 if idx >= len(self.pokemon[user]) else idx
+
+    def add_pokemon(self, user, pokemon_name, nature, nickname = '', idx = 0xFFFFFFFF) -> int:
+        return self.add_pokemon_obj(user, Pokemon(pokemon_name, nature, nickname), idx)
+
+    def add_pokemon_obj_str(self, user, pokemon: Pokemon, idx = 0xFFFFFFFF) -> str:
+        self.add_pokemon_obj(user, pokemon, idx)
+        return self.get_all_pokemon(user)
+
+    def remove_pokemon(self, user, pokemon_id) -> Pokemon:
+        self.__check_user(user)
+        self.__check_pokemon_id(user, pokemon_id)
+        pokemon = self.pokemon[user].pop(pokemon_id)
+        if len(self.pokemon[user]) == 0:
+            del self.pokemon[user]
+        self.save_state(user)
+        return pokemon
+
+    def remove_pokemon_str(self, user, pokemon_id) -> str:
+        self.remove_pokemon(user, pokemon_id)
+        return self.get_all_pokemon(user)
 
     def get_all_pokemon(self, user) -> str:
         self.__check_user(user)
         poke_list = ''
         for i in range(len(self.pokemon[user])):
-            poke_list += f'{self.__get_full_name_str(user, i)}\n'
+            poke_list += f'{self.get_full_name_str(user, i)}\n'
         return poke_list
 
     def get_pokemon_name(self, user, pokemon_id) -> str:
@@ -205,7 +225,7 @@ class _PokemonTrackingBase:
 
     def get_evs_str(self, user, pokemon_id) -> str:
         evs = self.get_evs(user, pokemon_id)
-        return f'**{self.__get_full_name_str(user, pokemon_id)}: EVs**\n{evs}'
+        return f'**{self.get_full_name_str(user, pokemon_id)}: EVs**\n{evs}'
 
     def set_evs(self, user, pokemon_id, hp, attack, defense, sp_atk, sp_def, speed) -> PokemonStats:
         self.__check_user(user)
@@ -217,7 +237,7 @@ class _PokemonTrackingBase:
 
     def set_evs_str(self, user, pokemon_id, hp, attack, defense, sp_atk, sp_def, speed) -> str:
         evs = self.set_evs(user, pokemon_id, hp, attack, defense, sp_atk, sp_def, speed)
-        return f'**{self.__get_full_name_str(user, pokemon_id)}: EVs**\n{evs}'
+        return f'**{self.get_full_name_str(user, pokemon_id)}: EVs**\n{evs}'
 
     def set_evs_multiple_pokemon(self, user, pokemon_id_list, evs_list) -> list[PokemonStats]:
         self.__check_user(user)
@@ -243,7 +263,7 @@ class _PokemonTrackingBase:
         pokemon_id_list = list(set(pokemon_id_list))
         responses = []
         for pokemon_id in pokemon_id_list:
-            responses.append(f'**{self.__get_full_name_str(user, pokemon_id)}: EVs**\n{self.pokemon[user][pokemon_id].evs}')
+            responses.append(f'**{self.get_full_name_str(user, pokemon_id)}: EVs**\n{self.pokemon[user][pokemon_id].evs}')
         return "\n\n".join(responses)
 
     def get_ivs(self, user, pokemon_id) -> tuple[PokemonStats, PokemonStats]:
@@ -253,7 +273,7 @@ class _PokemonTrackingBase:
 
     def get_ivs_str(self, user, pokemon_id) -> str:
         ivs_min, ivs_max = self.get_ivs(user, pokemon_id)
-        return f'**{self.__get_full_name_str(user, pokemon_id)}: IVs**\n{get_stat_range_str(ivs_min, ivs_max)}'
+        return f'**{self.get_full_name_str(user, pokemon_id)}: IVs**\n{get_stat_range_str(ivs_min, ivs_max)}'
 
     def get_base_stats(self, user, pokemon_id) -> PokemonStats:
         self.__check_user(user)
@@ -262,7 +282,7 @@ class _PokemonTrackingBase:
 
     def get_base_stats_str(self, user, pokemon_id) -> str:
         base_stats = self.get_base_stats(user, pokemon_id)
-        return f'**{self.__get_full_name_str(user, pokemon_id)}: Base Stats**\n{base_stats}'
+        return f'**{self.get_full_name_str(user, pokemon_id)}: Base Stats**\n{base_stats}'
 
     def set_ivs(self, user, pokemon_id, hp, attack, defense, sp_atk, sp_def, speed) -> tuple[PokemonStats, PokemonStats]:
         self.__check_user(user)
@@ -281,7 +301,7 @@ class _PokemonTrackingBase:
 
     def set_ivs_str(self, user, pokemon_id, hp, attack, defense, sp_atk, sp_def, speed) -> str:
         ivs_min, ivs_max = self.set_ivs(user, pokemon_id, hp, attack, defense, sp_atk, sp_def, speed)
-        return f'**{self.__get_full_name_str(user, pokemon_id)}: IVs**\n{get_stat_range_str(ivs_min, ivs_max)}'
+        return f'**{self.get_full_name_str(user, pokemon_id)}: IVs**\n{get_stat_range_str(ivs_min, ivs_max)}'
 
     def set_ivs_exact(self, user, pokemon_id, min_ivs, max_ivs) -> tuple[PokemonStats, PokemonStats]:
         self.__check_user(user)
@@ -293,7 +313,7 @@ class _PokemonTrackingBase:
 
     def set_ivs_exact_str(self, user, pokemon_id, hp, attack, defense, sp_atk, sp_def, speed) -> str:
         ivs_min, ivs_max = self.set_ivs_exact(user, pokemon_id, hp, attack, defense, sp_atk, sp_def, speed)
-        return f'**{self.__get_full_name_str(user, pokemon_id)}: IVs**\n{get_stat_range_str(ivs_min, ivs_max)}'
+        return f'**{self.get_full_name_str(user, pokemon_id)}: IVs**\n{get_stat_range_str(ivs_min, ivs_max)}'
 
     def get_pokemon_stats(self, user, pokemon_id, level) -> tuple[PokemonStats, PokemonStats]:
         self.__check_user(user)
@@ -302,14 +322,14 @@ class _PokemonTrackingBase:
 
     def get_pokemon_stats_str(self, user, pokemon_id, level) -> str:
         stats_min, stats_max = self.get_pokemon_stats(user, pokemon_id, level)
-        return f'**{self.__get_full_name_str(user, pokemon_id)}: Level {level} Stats**\n{get_stat_range_str(stats_min, stats_max)}'
+        return f'**{self.get_full_name_str(user, pokemon_id)}: Level {level} Stats**\n{get_stat_range_str(stats_min, stats_max)}'
 
     def change_evolution(self, user, pokemon_id, new_pokemon_name) -> str:
         self.__check_user(user)
         self.__check_pokemon_id(user, pokemon_id)
         self.pokemon[user][pokemon_id].change_evolution(new_pokemon_name)
         self.save_state(user)
-        return self.__get_full_name_str(user, pokemon_id)
+        return self.get_full_name_str(user, pokemon_id)
 
     def add_defeated_pokemon(self, user, defeated_pokemon_name, pokemon_id_list) -> list[PokemonStats]:
         pokemon_id_list = list(set(pokemon_id_list))
@@ -335,7 +355,7 @@ class _PokemonTrackingBase:
         if len(pokemon_id_list) != len(evs_list):
             raise PokemonTrackingException('Pokemon ID list size does not match EV list size.')
         for i in range(len(pokemon_id_list)):
-            responses.append(f'**{self.__get_full_name_str(user, pokemon_id_list[i])}: EVs**\n{evs_list[i]}')
+            responses.append(f'**{self.get_full_name_str(user, pokemon_id_list[i])}: EVs**\n{evs_list[i]}')
         return '\n\n'.join(responses)
 
     def get_nature(self, user, pokemon_id) -> str:
@@ -346,11 +366,11 @@ class _PokemonTrackingBase:
     def get_nature_str(self, user, pokemon_id) -> str:
         self.__check_user(user)
         self.__check_pokemon_id(user, pokemon_id)
-        return f'{self.__get_full_name_str(user, pokemon_id)}: **{self.pokemon[user][pokemon_id]._nature_name}**\n{self.pokemon[user][pokemon_id].nature}'
+        return f'{self.get_full_name_str(user, pokemon_id)}: **{self.pokemon[user][pokemon_id]._nature_name}**\n{self.pokemon[user][pokemon_id].nature}'
 
     def set_nature_str(self, user, pokemon_id, nature) -> str:
         self.__check_user(user)
         self.__check_pokemon_id(user, pokemon_id)
         self.pokemon[user][pokemon_id].set_nature(nature)
         self.save_state(user)
-        return f'{self.__get_full_name_str(user, pokemon_id)}: **{self.pokemon[user][pokemon_id]._nature_name}**\n{self.pokemon[user][pokemon_id].nature}'
+        return f'{self.get_full_name_str(user, pokemon_id)}: **{self.pokemon[user][pokemon_id]._nature_name}**\n{self.pokemon[user][pokemon_id].nature}'

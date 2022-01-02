@@ -33,7 +33,7 @@ class PokemonTrackingSQL(poketrack._PokemonTrackingBase):
 
                 if user not in self.pokemon:
                     self.pokemon[user] = []
-                self.pokemon[user].insert(id, poketrack._Pokemon.from_dict(dict(row)))
+                self.pokemon[user].insert(id, poketrack.Pokemon.from_dict(dict(row)))
         except sql_exc.ProgrammingError as e:
             print(f'Failed to read from table {self.__database_name}.')
 
