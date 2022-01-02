@@ -24,20 +24,19 @@ class PokemonStats:
         for stat in ['hp', 'attack', 'defense', 'sp_atk', 'sp_def', 'speed']:
             new_val = getattr(new, stat)
             other_val = getattr(other, stat)
-            if new_val < new.__max_val and new.total < new.__max_total:
-                new_val += other_val
-                inc = other_val
-                if new_val > new.__max_val:
-                    inc -= new_val - new.__max_val
-                    new_val = new.__max_val
-                elif new_val < new.__min_val:
-                    inc -= new_val - new.__min_val
-                    new_val = new.__min_val
-                new.total += inc
-                if new.total > new.__max_total:
-                    new_val -= new.total - new.__max_total
-                    new.total = new.__max_total
-                setattr(new, stat, new_val)
+            new_val += other_val
+            inc = other_val
+            if new_val > new.__max_val:
+                inc -= new_val - new.__max_val
+                new_val = new.__max_val
+            elif new_val < new.__min_val:
+                inc -= new_val - new.__min_val
+                new_val = new.__min_val
+            new.total += inc
+            if new.total > new.__max_total:
+                new_val -= new.total - new.__max_total
+                new.total = new.__max_total
+            setattr(new, stat, new_val)
         return new
 
     def to_dict(self):
