@@ -38,6 +38,6 @@ class PokemonTrackingSQL(poketrack._PokemonTrackingBase):
             print(f'Failed to read from table {self.__database_name}.')
 
     def save_state(self, user):
-        df = pd.DataFrame.from_dict({key: val for key, val in self.to_dict().items() if user == key[0]}, orient='index')
+        df = pd.DataFrame.from_dict(self.to_dict(), orient='index')
         df.index.set_names(['user', 'id'], inplace=True)
         df.to_sql(self.__database_name, con=self.__engine, if_exists='replace')
