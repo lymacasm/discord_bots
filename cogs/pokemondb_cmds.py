@@ -73,6 +73,10 @@ class PokemonDBCommands(commands.Cog):
     async def evolutions(self, ctx, pokemon: str, *args):
         await self.__pokemon_lookup_cmd(ctx, pokemondb.get_evolutions, pokemon, *args, results_fm=lambda r: '\n'.join(r))
 
+    @commands.command("forms")
+    async def forms(self, ctx, pokemon: str, *args):
+        await self.__pokemon_lookup_cmd(ctx, pokemondb.get_forms, pokemon, *args, results_fm=lambda r: '\n'.join(r))
+
     @commands.command("egg_groups")
     async def egg_groups(self, ctx, pokemon: str, *args):
         await self.__pokemon_lookup_cmd(ctx, pokemondb.get_egg_groups, pokemon, *args)
@@ -87,7 +91,7 @@ class PokemonDBCommands(commands.Cog):
             results_fm=lambda r: '\n'.join([f'{r[i]}' if r[i].hidden else f'{i+1}. {r[i]}' for i in range(len(r))]))
 
     @commands.command("stats")
-    async def get_base_stats(self, ctx, pokemon: str, *args):
+    async def base_stats(self, ctx, pokemon: str, *args):
         await self.__pokemon_lookup_cmd(ctx, pokemondb.get_base_stats, pokemon, *args, results_fm=lambda r: str(r))
 
     @commands.command("view")

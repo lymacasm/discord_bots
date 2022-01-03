@@ -240,5 +240,12 @@ def get_base_stats(pokemon: str) -> PokemonStats:
     pokemon_info = _get_pokemon_lookup(pokemon, pokebase.pokemon)
     return PokemonStats(*(pokemon_info.stats[i].base_stat for i in range(6)))
 
+def get_forms(pokemon: str) -> list[str]:
+    pokemon_species = _get_pokemon_lookup(pokemon, pokebase.pokemon_species)
+    forms = []
+    for form in pokemon_species.varieties:
+        forms.append('-'.join([n.capitalize() for n in form.pokemon.name.split('-')]))
+    return forms
+
 def get_pokemon_image_url(pokemon: str) -> str:
     pass

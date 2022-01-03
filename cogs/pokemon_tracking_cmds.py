@@ -154,6 +154,18 @@ class PokemonTrackingCommands(commands.Cog):
         if await self.__generic_tracking_cmd(ctx, self.pokemon_tracking.change_evolution, pokemon_id, evolution_name):
             self.add_to_undo_list(user, self.__generic_tracking_cmd, ctx, self.pokemon_tracking.change_evolution, pokemon_id, old_name)
 
+    @commands.command("track-set-form")
+    async def set_pokemon_form(self, ctx, pokemon_id: int, form_name: str, *args):
+        user = self.get_user(ctx)
+        try:
+            old_name = self.pokemon_tracking.get_form_name(user, pokemon_id)
+        except poketrack.PokemonTrackingException as e:
+            print('Failed to get form name.')
+            old_name = form_name
+
+        if await self.__generic_tracking_cmd(ctx, self.pokemon_tracking.change_form, pokemon_id, form_name):
+            self.add_to_undo_list(user, self.__generic_tracking_cmd, ctx, self.pokemon_tracking.change_form, pokemon_id, old_name)
+
     @commands.command("track-add-defeat")
     async def add_defeated_pokemon(self, ctx, defeated_pokemon: str, *pokemon_ids_received_exp):
         pokemon_ids = []

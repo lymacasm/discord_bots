@@ -1,6 +1,6 @@
 from utility.pokemon import PokemonStats, PokemonStatsError, compute_stats, get_stat_range_str
 import scrapers
-import scrapers.pokemondb as pokemondb
+import scrapers.pokebase as pokemondb
 
 class PokemonTrackingException(Exception):
     pass
@@ -67,8 +67,12 @@ _berries_map = {
 }
 
 class Pokemon:
-    def __init__(self, pokemon_name: str, nature: str, nickname = ''):
+    def __init__(self, pokemon_name: str, nature: str, nickname = '', form_name = ''):
         self._name = pokemon_name.capitalize()
+        if not form_name:
+            self._form_name = self._name
+        else:
+            self._form_name = '-'.join([n.capitalize() for n in form_name.split('-')])
         self._nature_name = nature.capitalize()
         self.nickname = nickname
         self.evs = PokemonStats(max_val=252, max_total=510)
@@ -76,14 +80,14 @@ class Pokemon:
         self.ivs_max = PokemonStats(31, 31, 31, 31, 31, 31)
         self.nature = _natures_map[self._nature_name.lower()]
         try:
-            self.base_stats = pokemondb.get_base_stats(self._name)
+            self.base_stats = pokemondb.get_base_stats(self._form_name)
         except scrapers.SuggestionException as suggestions:
             raise PokemonNotFoundException(f'Pokemon {self._name} was not found in the Pokedex. Did you mean: {suggestions}?')
 
     @classmethod
     def from_csv(cls, csv_line):
         properties = csv_line.strip().split(',')
-        pokemon = cls(properties[0], properties[1], properties[2])
+        pokemon = cls(properties[0], properties[1], properties[2], properties[21] if len(properties) > 21 else '')
         pokemon.evs = PokemonStats(*[int(prop) for prop in properties[3:9]], max_val=252, max_total=510)
         pokemon.ivs_min = PokemonStats(*[int(prop) for prop in properties[9:15]])
         pokemon.ivs_max = PokemonStats(*[int(prop) for prop in properties[15:21]])
@@ -91,7 +95,7 @@ class Pokemon:
 
     @classmethod
     def from_dict(cls, in_dict: dict):
-        pokemon = cls(in_dict['name'], in_dict['nature'], in_dict['nickname'])
+        pokemon = cls(in_dict['name'], in_dict['nature'], in_dict['nickname'], in_dict.get('form_name', ''))
         pokemon.evs = PokemonStats.from_dict({key.split('.')[-1]: val for key, val in in_dict.items() if 'evs.' in key}, max_val=252, max_total=510)
         pokemon.ivs_min = PokemonStats.from_dict({key.split('.')[-1]: val for key, val in in_dict.items() if 'ivs_min.' in key})
         pokemon.ivs_max = PokemonStats.from_dict({key.split('.')[-1]: val for key, val in in_dict.items() if 'ivs_max.' in key})
@@ -113,13 +117,32 @@ class Pokemon:
         except scrapers.SuggestionException:
             raise PokemonTrackingException(f'Pokemon {new_name} was not found in the Pokedex but was found in evolution list. Weird.')
         self._name = new_name
+        self._form_name = new_name
+
+    def change_form(self, new_name: str):
+        try:
+            forms = pokemondb.get_forms(self._name)
+        except scrapers.SuggestionException:
+            raise PokemonTrackingException(f'Pokemon {self._name} was not found in the Pokedex. It is possible the data has been corrupted.')
+
+        if new_name.lower() not in [f.lower() for f in forms]:
+            raise PokemonNotFoundException(f'Pokemon {new_name} is not a form of {self._name}. ' +
+                f'All possible forms are: {", ".join(forms)}.')
+        new_name = '-'.join([n.capitalize() for n in new_name.split('-')])
+
+        try:
+            self.base_stats = pokemondb.get_base_stats(new_name)
+        except scrapers.SuggestionException:
+            raise PokemonTrackingException(f'Pokemon {new_name} was not found in the Pokedex but was found in forms list. Weird.')
+        self._form_name = new_name
 
     def to_csv(self):
-        return f'{self._name},{self._nature_name},{self.nickname},{self.evs.to_csv()},{self.ivs_min.to_csv()},{self.ivs_max.to_csv()}'
+        return f'{self._name},{self._nature_name},{self.nickname},{self.evs.to_csv()},{self.ivs_min.to_csv()},{self.ivs_max.to_csv()},{self._form_name}'
 
     def to_dict(self):
         poke_dict = {
             'name': self._name,
+            'form_name': self._form_name,
             'nature': self._nature_name,
             'nickname': self.nickname,
         }
@@ -131,9 +154,8 @@ class Pokemon:
             poke_dict[f'ivs_max.{key}'] = val
         return poke_dict
         
-
     def get_name(self):
-        name = self._name
+        name = self._form_name
         if self.nickname:
             name += f' ({self.nickname})'
         return name
@@ -235,6 +257,11 @@ class _PokemonTrackingBase:
         self.__check_user(user)
         self.__check_pokemon_id(user, pokemon_id)
         return self.pokemon[user][pokemon_id]._name
+
+    def get_form_name(self, user, pokemon_id) -> str:
+        self.__check_user(user)
+        self.__check_pokemon_id(user, pokemon_id)
+        return self.pokemon[user][pokemon_id]._form_name
 
     def get_evs(self, user, pokemon_id) -> PokemonStats:
         self.__check_user(user)
@@ -346,6 +373,13 @@ class _PokemonTrackingBase:
         self.__check_user(user)
         self.__check_pokemon_id(user, pokemon_id)
         self.pokemon[user][pokemon_id].change_evolution(new_pokemon_name)
+        self.save_state(user)
+        return self.get_full_name_str(user, pokemon_id)
+
+    def change_form(self, user, pokemon_id, new_pokemon_name) -> str:
+        self.__check_user(user)
+        self.__check_pokemon_id(user, pokemon_id)
+        self.pokemon[user][pokemon_id].change_form(new_pokemon_name)
         self.save_state(user)
         return self.get_full_name_str(user, pokemon_id)
 
