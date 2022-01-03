@@ -92,6 +92,8 @@ class PokemonDBCommands(commands.Cog):
 
     @commands.command("view")
     async def view_pokemon(self, ctx, pokemon: str, *args):
+        ctx.reply("Command currently unavailable.")
+        return
         if len(args) > 0:
             await ctx.reply(f"Oh my, that's a lot of wild pokemon there. I can only lookup one at a time.")
             return
