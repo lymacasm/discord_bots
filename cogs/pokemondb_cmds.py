@@ -1,7 +1,7 @@
 import discord
 from discord.ext import commands
 
-import scrapers.pokemondb as pokemondb
+import scrapers.pokebase as pokemondb
 
 class PokemonDBCommands(commands.Cog):
     """ Contains commands used to access pokemondb. """
@@ -87,7 +87,7 @@ class PokemonDBCommands(commands.Cog):
             results_fm=lambda r: '\n'.join([f'{r[i]}' if r[i].hidden else f'{i+1}. {r[i]}' for i in range(len(r))]))
 
     @commands.command("stats")
-    async def abilities(self, ctx, pokemon: str, *args):
+    async def get_base_stats(self, ctx, pokemon: str, *args):
         await self.__pokemon_lookup_cmd(ctx, pokemondb.get_base_stats, pokemon, *args, results_fm=lambda r: str(r))
 
     @commands.command("view")

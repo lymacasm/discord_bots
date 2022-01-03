@@ -49,6 +49,16 @@ class PokemonStats:
             'speed': self.speed
         }
 
+    def to_pretty_dict(self):
+        return {
+            'HP': self.hp,
+            'Attack': self.attack,
+            'Defense': self.defense,
+            'Special Attack': self.sp_atk,
+            'Special Defense': self.sp_def,
+            'Speed': self.speed
+        }
+
     def set_stats(self, hp, attack, defense, sp_attack, sp_defense, speed):
         self.hp = hp
         self.attack = attack

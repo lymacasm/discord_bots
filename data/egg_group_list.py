@@ -1,0 +1,17 @@
+all_egg_groups = [
+    "Monster",
+    "Water1",
+    "Bug",
+    "Flying",
+    "Field",
+    "Fairy",
+    "Grass",
+    "Humanshape",
+    "Water3",
+    "Mineral",
+    "Amorphous",
+    "Water2",
+    "Ditto",
+    "Dragon",
+    "Undiscovered",
+]
