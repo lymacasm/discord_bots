@@ -39,7 +39,7 @@ class Ability:
 def _pokebase_lookup(key: str, lookup_fn, suggestion_list: list[str]):
     info = lookup_fn(key)
     if not hasattr(info, 'id'):
-        matches = get_close_matches(info, suggestion_list)
+        matches = get_close_matches(key, suggestion_list)
         if len(matches) > 0:
             raise WebSuggestionException(matches)
         return None
