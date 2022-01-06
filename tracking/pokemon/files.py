@@ -1,23 +1,31 @@
 import os
+import pandas as pd
 import tracking.pokemon as poketrack
 
 class PokemonTrackingFiles(poketrack._PokemonTrackingBase):
+    __file_name = 'pokemon_list.csv'
+
     def __init__(self):
         self.base_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data')
         os.makedirs(self.base_dir, exist_ok=True)
+        self.__file_name = PokemonTrackingFiles.__file_name
         super().__init__()
 
     def load_state(self):
-        all_files = [f for f in os.listdir(self.base_dir) if os.path.isfile(os.path.join(self.base_dir, f))]
-        for file in all_files:
-            full_path = os.path.join(self.base_dir, file)
-            with open(full_path) as f:
-                user = file.split('.')[0].replace('pokemon_', '')
-                self.pokemon[user] = []
-                for line in f.readlines():
-                    self.pokemon[user].append(poketrack.Pokemon.from_csv(line))
+        self.pokemon = {}
+        try:
+            df = pd.read_csv(os.path.join(self.base_dir, f'pokemon_list.csv'))
+            for _index, row in df.iterrows():
+                user = str(row['user'])
+                id = int(row['id'])
 
-    def save_state(self, user):
-        with open(os.path.join(self.base_dir, f'pokemon_{user}.csv'), 'w') as f:
-            for pokemon in self.pokemon[user]:
-                f.write(pokemon.to_csv() + '\n')
+                if user not in self.pokemon:
+                    self.pokemon[user] = []
+                self.pokemon[user].insert(id, poketrack.Pokemon.from_dict(dict(row)))
+        except FileNotFoundError as e:
+            print(f'Failed to read from file {self.__file_name}.')
+
+    def save_state(self):
+        df = pd.DataFrame.from_dict(self.to_dict(), orient='index')
+        df.index.set_names(['user', 'id'], inplace=True)
+        df.to_csv(os.path.join(self.base_dir, f'pokemon_list.csv'))

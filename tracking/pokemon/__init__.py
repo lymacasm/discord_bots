@@ -1,6 +1,7 @@
 from utility.pokemon import PokemonStats, PokemonStatsError, compute_stats, get_stat_range_str
 import scrapers
 import scrapers.pokebase as pokemondb
+import math
 
 class PokemonTrackingException(Exception):
     pass
@@ -75,6 +76,11 @@ class Pokemon:
             self._form_name = '-'.join([n.capitalize() for n in form_name.split('-')])
         self._nature_name = nature.capitalize()
         self.nickname = nickname
+        try:
+            if math.isnan(float(self.nickname)):
+                self.nickname = ''
+        except ValueError:
+            pass
         self.evs = PokemonStats(max_val=252, max_total=510)
         self.ivs_min = PokemonStats(0, 0, 0, 0, 0, 0)
         self.ivs_max = PokemonStats(31, 31, 31, 31, 31, 31)
@@ -85,20 +91,11 @@ class Pokemon:
             raise PokemonNotFoundException(f'Pokemon {self._name} was not found in the Pokedex. Did you mean: {suggestions}?')
 
     @classmethod
-    def from_csv(cls, csv_line):
-        properties = csv_line.strip().split(',')
-        pokemon = cls(properties[0], properties[1], properties[2], properties[21] if len(properties) > 21 else '')
-        pokemon.evs = PokemonStats(*[int(prop) for prop in properties[3:9]], max_val=252, max_total=510)
-        pokemon.ivs_min = PokemonStats(*[int(prop) for prop in properties[9:15]])
-        pokemon.ivs_max = PokemonStats(*[int(prop) for prop in properties[15:21]])
-        return pokemon
-
-    @classmethod
     def from_dict(cls, in_dict: dict):
         pokemon = cls(in_dict['name'], in_dict['nature'], in_dict['nickname'], in_dict.get('form_name', ''))
-        pokemon.evs = PokemonStats.from_dict({key.split('.')[-1]: val for key, val in in_dict.items() if 'evs.' in key}, max_val=252, max_total=510)
-        pokemon.ivs_min = PokemonStats.from_dict({key.split('.')[-1]: val for key, val in in_dict.items() if 'ivs_min.' in key})
-        pokemon.ivs_max = PokemonStats.from_dict({key.split('.')[-1]: val for key, val in in_dict.items() if 'ivs_max.' in key})
+        pokemon.evs = PokemonStats.from_dict({'.'.join(key.split('.')[1:]): int(float(val)) for key, val in in_dict.items() if ('evs.' in key) and (not math.isnan(val))}, max_val=252, max_total=510)
+        pokemon.ivs_min = PokemonStats.from_dict({'.'.join(key.split('.')[1:]): int(float(val)) for key, val in in_dict.items() if ('ivs_min.' in key) and (not math.isnan(val))})
+        pokemon.ivs_max = PokemonStats.from_dict({'.'.join(key.split('.')[1:]): int(float(val)) for key, val in in_dict.items() if ('ivs_max.' in key) and (not math.isnan(val))})
         return pokemon
 
     def change_evolution(self, new_name: str):
@@ -136,9 +133,6 @@ class Pokemon:
             raise PokemonTrackingException(f'Pokemon {new_name} was not found in the Pokedex but was found in forms list. Weird.')
         self._form_name = new_name
 
-    def to_csv(self):
-        return f'{self._name},{self._nature_name},{self.nickname},{self.evs.to_csv()},{self.ivs_min.to_csv()},{self.ivs_max.to_csv()},{self._form_name}'
-
     def to_dict(self):
         poke_dict = {
             'name': self._name,
@@ -168,9 +162,18 @@ class Pokemon:
         try:
             evs.set_max_stat_val(252)
             evs.set_max_total_val(510)
+            evs.goal_stats = self.evs.goal_stats
         except PokemonStatsError as e:
             raise PokemonTrackingException(f'Failed to set new EVs. Error: {e}')
         self.evs = evs
+
+    def set_goal_evs(self, goal_evs: PokemonStats):
+        try:
+            goal_evs.set_max_stat_val(252)
+            goal_evs.set_max_total_val(510)
+        except PokemonStatsError as e:
+            raise PokemonTrackingException(f'Failed to set goal EVs. Error: {e}')
+        self.evs.goal_stats = goal_evs
 
     def set_nature(self, nature):
         self._nature_name = nature.capitalize()
@@ -202,7 +205,7 @@ class _PokemonTrackingBase:
     def load_state(self):
         raise NotImplementedError('Method "load_state" has not been implemented.')
 
-    def save_state(self, user):
+    def save_state(self):
         raise NotImplementedError('Method "save_state" has not been implemented.')
 
     def to_dict(self):
@@ -223,7 +226,7 @@ class _PokemonTrackingBase:
         if user not in self.pokemon:
             self.pokemon[user] = []
         self.pokemon[user].insert(idx, pokemon)
-        self.save_state(user)
+        self.save_state()
         return len(self.pokemon[user]) - 1 if idx >= len(self.pokemon[user]) else idx
 
     def add_pokemon(self, user, pokemon_name, nature, nickname = '', idx = 0xFFFFFFFF) -> int:
@@ -239,7 +242,7 @@ class _PokemonTrackingBase:
         pokemon = self.pokemon[user].pop(pokemon_id)
         if len(self.pokemon[user]) == 0:
             del self.pokemon[user]
-        self.save_state(user)
+        self.save_state()
         return pokemon
 
     def remove_pokemon_str(self, user, pokemon_id) -> str:
@@ -286,12 +289,38 @@ class _PokemonTrackingBase:
         self.__check_pokemon_id(user, pokemon_id)
         evs = PokemonStats(hp, attack, defense, sp_atk, sp_def, speed)
         self.pokemon[user][pokemon_id].set_evs(evs)
-        self.save_state(user)
+        self.save_state()
         return self.pokemon[user][pokemon_id].evs
 
     def set_evs_str(self, user, pokemon_id, hp, attack, defense, sp_atk, sp_def, speed) -> str:
         evs = self.set_evs(user, pokemon_id, hp, attack, defense, sp_atk, sp_def, speed)
         return f'**{self.get_full_name_str(user, pokemon_id)}: EVs**\n{evs}'
+
+    def get_goal_evs(self, user, pokemon_id) -> PokemonStats:
+        self.__check_user(user)
+        self.__check_pokemon_id(user, pokemon_id)
+        return self.pokemon[user][pokemon_id].evs.goal_stats
+
+    def get_goal_evs_str(self, user, pokemon_id) -> str:
+        return f'**{self.get_full_name_str(user, pokemon_id)}: Goal EVs**\n{self.get_goal_evs(user, pokemon_id)}'
+
+    def set_goal_evs(self, user, pokemon_id, hp, attack, defense, sp_atk, sp_def, speed) -> PokemonStats:
+        self.__check_user(user)
+        self.__check_pokemon_id(user, pokemon_id)
+        goal_evs = PokemonStats(hp, attack, defense, sp_atk, sp_def, speed)
+        self.pokemon[user][pokemon_id].set_goal_evs(goal_evs)
+        self.save_state()
+        return self.pokemon[user][pokemon_id].evs.goal_stats
+
+    def set_goal_evs_str(self, user, pokemon_id, hp, attack, defense, sp_atk, sp_def, speed) -> str:
+        goal_evs = self.set_goal_evs(user, pokemon_id, hp, attack, defense, sp_atk, sp_def, speed)
+        return f'**{self.get_full_name_str(user, pokemon_id)}: Goal EVs**\n{goal_evs}'
+
+    def remove_goal_evs_str(self, user, pokemon_id) -> str:
+        self.__check_user(user)
+        self.__check_pokemon_id(user, pokemon_id)
+        self.pokemon[user][pokemon_id].evs.goal_stats = None
+        return f'**{self.get_full_name_str(user, pokemon_id)}: Goal EVs**\n{self.pokemon[user][pokemon_id].evs.goal_stats}'
 
     def set_evs_multiple_pokemon(self, user, pokemon_id_list, evs_list) -> list[PokemonStats]:
         self.__check_user(user)
@@ -309,7 +338,7 @@ class _PokemonTrackingBase:
         for i in range(len(pokemon_id_list)):
             self.pokemon[user][pokemon_id_list[i]].set_evs(evs_list[i])
             new_evs.append(self.pokemon[user][pokemon_id_list[i]])
-        self.save_state(user)
+        self.save_state()
         return new_evs
 
     def set_evs_multiple_pokemon_str(self, user, pokemon_id_list, evs_list) -> str:
@@ -350,7 +379,7 @@ class _PokemonTrackingBase:
             raise PokemonTrackingException(f'Failed to determine IVs from provided keywords. IVs must be one of {list(_iv_name_map.keys())}.')
 
         self.pokemon[user][pokemon_id].set_ivs(min_ivs, max_ivs)
-        self.save_state(user)
+        self.save_state()
         return (min_ivs, max_ivs)
 
     def set_ivs_str(self, user, pokemon_id, hp, attack, defense, sp_atk, sp_def, speed) -> str:
@@ -362,7 +391,7 @@ class _PokemonTrackingBase:
         self.__check_pokemon_id(user, pokemon_id)
 
         self.pokemon[user][pokemon_id].set_ivs(min_ivs, max_ivs)
-        self.save_state(user)
+        self.save_state()
         return (min_ivs, max_ivs)
 
     def set_ivs_exact_str(self, user, pokemon_id, hp, attack, defense, sp_atk, sp_def, speed) -> str:
@@ -382,14 +411,14 @@ class _PokemonTrackingBase:
         self.__check_user(user)
         self.__check_pokemon_id(user, pokemon_id)
         self.pokemon[user][pokemon_id].change_evolution(new_pokemon_name)
-        self.save_state(user)
+        self.save_state()
         return self.get_full_name_str(user, pokemon_id)
 
     def change_form(self, user, pokemon_id, new_pokemon_name) -> str:
         self.__check_user(user)
         self.__check_pokemon_id(user, pokemon_id)
         self.pokemon[user][pokemon_id].change_form(new_pokemon_name)
-        self.save_state(user)
+        self.save_state()
         return self.get_full_name_str(user, pokemon_id)
 
     def add_defeated_pokemon(self, user, defeated_pokemon_name, pokemon_id_list) -> list[PokemonStats]:
@@ -406,7 +435,7 @@ class _PokemonTrackingBase:
         for pokemon_id in pokemon_id_list:
             self.pokemon[user][pokemon_id].evs += ev_yield
             evs_list.append(self.pokemon[user][pokemon_id].evs)
-        self.save_state(user)
+        self.save_state()
         return evs_list
 
     def add_defeated_pokemon_str(self, user, defeated_pokemon_name, pokemon_id_list) -> str:
@@ -429,7 +458,7 @@ class _PokemonTrackingBase:
 
         for _i in range(count):
             self.pokemon[user][pokemon_id].evs += ev_change
-        self.save_state(user)
+        self.save_state()
         return self.pokemon[user][pokemon_id].evs
 
     def consume_ev_vitamin_str(self, user, pokemon_id, vitamin, count=1):
@@ -445,7 +474,7 @@ class _PokemonTrackingBase:
 
         for _i in range(count):
             self.pokemon[user][pokemon_id].evs += ev_change
-        self.save_state(user)
+        self.save_state()
         return self.pokemon[user][pokemon_id].evs
 
     def consume_ev_berry_str(self, user, pokemon_id, berry, count=1):
@@ -465,7 +494,7 @@ class _PokemonTrackingBase:
         self.__check_user(user)
         self.__check_pokemon_id(user, pokemon_id)
         self.pokemon[user][pokemon_id].set_nature(nature)
-        self.save_state(user)
+        self.save_state()
         return f'{self.get_full_name_str(user, pokemon_id)}: **{self.pokemon[user][pokemon_id]._nature_name}**\n{self.pokemon[user][pokemon_id].nature}'
 
     def get_nickname(self, user, pokemon_id) -> str:
@@ -477,5 +506,5 @@ class _PokemonTrackingBase:
         self.__check_user(user)
         self.__check_pokemon_id(user, pokemon_id)
         self.pokemon[user][pokemon_id].nickname = nickname
-        self.save_state(user)
+        self.save_state()
         return f'{self.get_full_name_str(user, pokemon_id)}'

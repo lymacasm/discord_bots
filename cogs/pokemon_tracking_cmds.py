@@ -137,6 +137,42 @@ class PokemonTrackingCommands(commands.Cog):
             self.add_to_undo_list(user, self.__generic_tracking_cmd, ctx, self.pokemon_tracking.set_evs, pokemon_id, old_evs.hp, old_evs.attack, old_evs.defense, old_evs.sp_atk,
                 old_evs.sp_def, old_evs.speed)
 
+    @commands.command("track-get-goal-evs")
+    async def get_pokemon_goal_evs(self, ctx, pokemon_id: int):
+        await self.__generic_tracking_cmd(ctx, self.pokemon_tracking.get_goal_evs_str, pokemon_id)
+
+    @commands.command("track-set-goal-evs")
+    async def set_pokemon_goal_evs(self, ctx, pokemon_id: int, hp: int, attack: int, defense: int, sp_atk: int, sp_def: int, speed: int):
+        user = self.get_user(ctx)
+        try:
+            old_goal_evs = self.pokemon_tracking.get_goal_evs(user, pokemon_id)
+        except poketrack.PokemonTrackingException as e:
+            print(f'Failed to get old EVs. Error: {e}')
+            old_goal_evs = None
+
+        if await self.__generic_tracking_cmd(ctx, self.pokemon_tracking.set_goal_evs_str, pokemon_id, hp, attack, defense, sp_atk, sp_def, speed):
+            if old_goal_evs is None:
+                self.add_to_undo_list(user, self.__generic_tracking_cmd, ctx, self.pokemon_tracking.remove_goal_evs_str, pokemon_id)
+            else:
+                self.add_to_undo_list(user, self.__generic_tracking_cmd, ctx, self.pokemon_tracking.set_evs, pokemon_id, old_goal_evs.hp, old_goal_evs.attack, old_goal_evs.defense, old_goal_evs.sp_atk,
+                    old_goal_evs.sp_def, old_goal_evs.speed)
+
+    @commands.command("track-rem-goal-evs")
+    async def rem_pokemon_goal_evs(self, ctx, pokemon_id: int):
+        user = self.get_user(ctx)
+        try:
+            old_goal_evs = self.pokemon_tracking.get_goal_evs(user, pokemon_id)
+        except poketrack.PokemonTrackingException as e:
+            print(f'Failed to get old EVs. Error: {e}')
+            old_goal_evs = None
+
+        if await self.__generic_tracking_cmd(ctx, self.pokemon_tracking.remove_goal_evs_str, pokemon_id):
+            if old_goal_evs is None:
+                self.add_to_undo_list(user, self.__generic_tracking_cmd, ctx, self.pokemon_tracking.remove_goal_evs_str, pokemon_id)
+            else:
+                self.add_to_undo_list(user, self.__generic_tracking_cmd, ctx, self.pokemon_tracking.set_evs, pokemon_id, old_goal_evs.hp, old_goal_evs.attack, old_goal_evs.defense, old_goal_evs.sp_atk,
+                    old_goal_evs.sp_def, old_goal_evs.speed)
+
     @commands.command("track-get-ivs")
     async def get_pokemon_ivs(self, ctx, pokemon_id: int):
         await self.__generic_tracking_cmd(ctx, self.pokemon_tracking.get_ivs_str, pokemon_id)
