@@ -100,6 +100,22 @@ class PokemonTrackingCommands(commands.Cog):
     async def get_pokemon_list(self, ctx):
         await self.__generic_tracking_cmd(ctx, self.pokemon_tracking.get_all_pokemon)
 
+    @commands.command("track-list-evs")
+    async def get_all_pokemon_evs(self, ctx):
+        await self.__generic_tracking_cmd(ctx, self.pokemon_tracking.get_evs_all_str)
+
+    @commands.command("track-set-nickname")
+    async def set_pokemon_nickname(self, ctx, pokemon_id: int, nickname: str):
+        user = self.get_user(ctx)
+        try:
+            old_nickname = self.pokemon_tracking.get_nickname(user, pokemon_id)
+        except poketrack.PokemonTrackingException as e:
+            print(f'Failed to get old nickname. Error: {e}')
+            old_nickname = nickname
+
+        if await self.__generic_tracking_cmd(ctx, self.pokemon_tracking.set_nickname_str, pokemon_id, nickname):
+            self.add_to_undo_list(user, self.__generic_tracking_cmd, ctx, self.pokemon_tracking.set_nickname_str, pokemon_id, old_nickname)
+
     @commands.command("track-get-base")
     async def get_pokemon_base_stats(self, ctx, pokemon_id: int):
         await self.__generic_tracking_cmd(ctx, self.pokemon_tracking.get_base_stats_str, pokemon_id)
@@ -114,7 +130,7 @@ class PokemonTrackingCommands(commands.Cog):
         try:
             old_evs = self.pokemon_tracking.get_evs(user, pokemon_id)
         except poketrack.PokemonTrackingException as e:
-            print('Failed to get old EVs.')
+            print(f'Failed to get old EVs. Error: {e}')
             old_evs = poketrack.PokemonStats(hp, attack, defense, sp_atk, sp_def, speed)
 
         if await self.__generic_tracking_cmd(ctx, self.pokemon_tracking.set_evs_str, pokemon_id, hp, attack, defense, sp_atk, sp_def, speed):

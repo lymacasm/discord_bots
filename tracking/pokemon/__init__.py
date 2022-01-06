@@ -272,6 +272,15 @@ class _PokemonTrackingBase:
         evs = self.get_evs(user, pokemon_id)
         return f'**{self.get_full_name_str(user, pokemon_id)}: EVs**\n{evs}'
 
+    def get_evs_all(self, user) -> list[PokemonStats]:
+        self.__check_user(user)
+        return [pk.evs for pk in self.pokemon[user]]
+
+    def get_evs_all_str(self, user) -> str:
+        self.__check_user(user)
+        return '\n\n'.join([f'**{self.get_full_name_str(user, i)}: EVs**\n{self.pokemon[user][i].evs}'
+            for i in range(len(self.pokemon[user]))])
+
     def set_evs(self, user, pokemon_id, hp, attack, defense, sp_atk, sp_def, speed) -> PokemonStats:
         self.__check_user(user)
         self.__check_pokemon_id(user, pokemon_id)
@@ -458,3 +467,15 @@ class _PokemonTrackingBase:
         self.pokemon[user][pokemon_id].set_nature(nature)
         self.save_state(user)
         return f'{self.get_full_name_str(user, pokemon_id)}: **{self.pokemon[user][pokemon_id]._nature_name}**\n{self.pokemon[user][pokemon_id].nature}'
+
+    def get_nickname(self, user, pokemon_id) -> str:
+        self.__check_user(user)
+        self.__check_pokemon_id(user, pokemon_id)
+        return self.pokemon[user][pokemon_id].nickname
+
+    def set_nickname_str(self, user, pokemon_id, nickname) -> str:
+        self.__check_user(user)
+        self.__check_pokemon_id(user, pokemon_id)
+        self.pokemon[user][pokemon_id].nickname = nickname
+        self.save_state(user)
+        return f'{self.get_full_name_str(user, pokemon_id)}'
