@@ -34,10 +34,10 @@ class PokemonTrackingSQL(poketrack._PokemonTrackingBase):
                 if user not in self.pokemon:
                     self.pokemon[user] = []
                 self.pokemon[user].insert(id, poketrack.Pokemon.from_dict(dict(row)))
-        except sql_exc.ProgrammingError as e:
+        except sql_exc.ProgrammingError:
             print(f'Failed to read from table {self.__database_name}.')
 
     def save_state(self):
         df = pd.DataFrame.from_dict(self.to_dict(), orient='index')
         df.index.set_names(['user', 'id'], inplace=True)
-        df.to_sql(self.__database_name, con=self.__engine, if_exists='replace')
+        df.to_sql(self.__database_name, con=self.__engine, if_exists='replace', )
