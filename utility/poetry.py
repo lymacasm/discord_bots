@@ -6,7 +6,7 @@ class SyllableSchemeMismatchError(PoetryError):
 
 def get_syllable_count(word: str):
     """ Counts the number of syllables in the input word. """
-    word = word.lower().replace('.', '').replace(',', '').replace('!', '').replace('?', '')
+    word = word.lower().replace('.', '').replace(',', '').replace('!', '').replace('?', '').replace(':', '').replace(';', '')
     count = 0
     vowels = 'aeiouy'
     if word[0] in vowels:
@@ -14,8 +14,16 @@ def get_syllable_count(word: str):
     for index in range(1, len(word)):
         if word[index] in vowels and word[index - 1] not in vowels:
             count += 1
-    if word.endswith('e') and not word.endswith('le'):
+        elif index > 1 and word[index] in vowels and word[index - 1] == 'y' and word[index - 2] in vowels:
+            count += 1
+    if word.endswith('e') and not word.endswith('le') or word.endswith('sed'):
         count -= 1
+    if word.endswith('es'):
+        es_quiet_prefixes = ['m', 'v', 'th', 'd']
+        for prefix in es_quiet_prefixes:
+            if word[(-2-len(prefix)):-2] == prefix:
+                count -= 1
+                break
     if count == 0:
         count += 1
     return count
@@ -38,7 +46,7 @@ def matches_syllables_scheme(potential_poetry: str, syllable_counts: list[int]) 
             Throws:
                 - SyllableSchemeMismatchError
     """
-    words = potential_poetry.strip().split(' ')
+    words = potential_poetry.strip().replace('\n', ' ').replace('\r', ' ').replace('  ', ' ').split(' ')
     lines = [[]]
     syllables = list(syllable_counts)
     line_idx = 0
