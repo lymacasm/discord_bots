@@ -3,6 +3,8 @@ import sys
 from dotenv import load_dotenv
 from discord.ext import commands
 
+from discord_misc.help import HelpCommand
+
 print('Loading dotenv')
 load_dotenv()
 try:
@@ -11,7 +13,8 @@ except:
     sys.exit('Failed to grab environment variable.')
 
 print('Initializing bot.')
-writing_bot = commands.Bot(command_prefix='!')
+writing_bot = commands.Bot(command_prefix='!', help_command=HelpCommand())
+#writing_bot = commands.Bot(command_prefix='!')
 print('Loading cogs.writing_greetings extension.')
 writing_bot.load_extension('cogs.writing_greetings')
 print('Loading cogs.thesaurus_cmds extension.')

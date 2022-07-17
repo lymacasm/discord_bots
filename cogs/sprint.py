@@ -26,6 +26,17 @@ class SprintCommands(commands.Cog):
             '\U0001F62D', # loudly crying face
             '\U0001F61E', # disappointed face
         ]
+        self.bot.help_command.add_custom_cmd_msg('sprint',
+            "!sprint start\n  Starts a sprint with default settings (1 minute to join, 15 minute sprint).\n\n" + \
+            "!sprint for N in M\n  Starts a sprint for N minutes, giving people M minutes to join.\n\n" + \
+            "!sprint cancel\n  Cancels the sprint (sprints can only be canceled prior to sprint completion).\n\n" + \
+            "!sprint join W\n  Join the current sprint with a starting word count of W.\n\n" + \
+            "!sprint leave\n  Leave the current sprint.\n\n" + \
+            "!sprint time\n  Gets the time remaining in the current sprint.\n\n" + \
+            "!sprint wc F\n  Provide your final word count. Your sprint word count will be F - W (final word count - join word count).\n\n" + \
+            "!sprint status\n  Get your sprint word count for the active sprint. will return F - W (final word count - join word count).\n\n" + \
+            "!sprint pb\n  Gets your personal best words per minute from previous sprints."
+        )
 
         # Create sprint tracker
         try:
